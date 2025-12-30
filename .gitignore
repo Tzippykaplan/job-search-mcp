@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+.venv/
+.python-version
+
+# Build / packaging
+*.egg-info/
+dist/
+build/
+
+# IDE
+.idea/
+
+# Outputs
+output_resumes/
+
+# Env
+.env
