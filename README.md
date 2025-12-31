@@ -280,6 +280,8 @@ src/job_mcp/
 ├── server.py                 # MCP server entry point
 ├── config.py                 # Configuration constants
 ├── exceptions.py             # Custom exception classes
+├── prompts/
+│   ├── system_prompt.txt
 ├── tools/
 │   ├── extract_job_requirements_tool.py
 │   ├── match_resume_to_job_tool.py
