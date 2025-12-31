@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from pathlib import Path
-from datetime import datetime
 import re
+from datetime import datetime
+from pathlib import Path
+from docx import Document
 
 
 def _safe_filename(name: str) -> str:
@@ -11,9 +12,9 @@ def _safe_filename(name: str) -> str:
     Keeps letters/numbers/space/_/- and removes the rest.
     """
     name = (name or "").strip() or "resume"
-    name = re.sub(r'[<>:"/\\|?*\n\r\t]+', " ", name)  # Windows-illegal chars
+    name = re.sub(r'[<>:"/\\|?*\n\r\t]+', " ", name)
     name = re.sub(r"\s+", " ", name).strip()
-    return name[:120]  # prevent too-long filenames
+    return name[:120]
 
 
 def export_resume_to_docx(
@@ -24,19 +25,22 @@ def export_resume_to_docx(
 ) -> str:
     """
     Export resume plain text to a DOCX file.
-
-    Parameters:
-      resume_text: the final resume content (string)
-      output_dir: directory to save files (relative or absolute)
-      file_name: optional base name (without .docx)
-      add_timestamp: if True, append YYYYMMDD_HHMMSS
-
+    
+    Creates a professional DOCX file with proper paragraph formatting,
+    suitable for ATS (Applicant Tracking System) scanning.
+    
+    Args:
+        resume_text: The resume content (plain text).
+        output_dir: Directory to save the file (relative or absolute).
+        file_name: Base filename without extension (optional).
+        add_timestamp: Whether to append YYYYMMDD_HHMMSS to filename.
+    
     Returns:
       absolute path to the generated docx file (string)
     """
     text = (resume_text or "").strip()
     if not text:
-        raise ValueError("resume_text is empty")
+        raise ValueError("resume_text cannot be empty")
 
     out_dir = Path(output_dir).expanduser()
     if not out_dir.is_absolute():
@@ -48,9 +52,7 @@ def export_resume_to_docx(
     final_name = f"{base}_{stamp}.docx" if stamp else f"{base}.docx"
     out_path = (out_dir / final_name).resolve()
 
-    # python-docx
-    from docx import Document
-
+    # Create DOCX document
     doc = Document()
 
     # Convert text blocks into paragraphs (simple + ATS-friendly)

@@ -5,18 +5,38 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "job-search-mcp"
 version = "0.1.0"
-description = "Add your description here"
+description = "MCP server for job-resume matching and rewriting using Google Gemini"
 readme = "README.md"
+authors = [{name = "Tzippy Kaplan", email = "tzippykaplan123@gmail.com"}]
 requires-python = ">=3.12"
 dependencies = [
     "beautifulsoup4>=4.14.3",
     "google-genai>=1.56.0",
     "httpx>=0.28.1",
     "mcp[cli]>=1.25.0",
+    "python-docx>=0.8.11",
     "python-dotenv>=1.2.1",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
