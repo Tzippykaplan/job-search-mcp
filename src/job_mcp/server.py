@@ -12,10 +12,12 @@ load_dotenv()
 mcp = FastMCP("job-search-mcp")
 
 # Import tools AFTER creating mcp instance
+from job_mcp.tools.export_resume_docx_tool import export_resume_docx_tool
 from job_mcp.tools.extract_job_requirements_tool import extract_job_requirements
 from job_mcp.tools.match_resume_to_job_tool import match_resume_to_job
 from job_mcp.tools.rewrite_resume_for_job_tool import rewrite_resume_for_job_tool
-from job_mcp.tools.export_resume_docx_tool import export_resume_docx_tool
+
+logger = logging.getLogger(__name__)
 
 
 @mcp.tool(

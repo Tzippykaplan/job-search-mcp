@@ -12,6 +12,16 @@ An intelligent Model Context Protocol (MCP) server for job searching that helps 
 
 **DOCX Export** - Save optimized resumes as professional Word documents ready for submission
 
+### Agent Behavior & Prompting
+
+This MCP server is designed to be used by autonomous AI agents.
+
+The agent operates with a predefined system prompt that defines its behavior, intent awareness, and tool orchestration logic.
+Based on user input, the agent can proactively infer job-application intent and decide which MCP tools to invoke.
+
+Users do not need to provide explicit instructions or workflows —
+the agent automatically guides the process and requests only missing information when needed.
+ 
 ## Installation
 
 ### Prerequisites
