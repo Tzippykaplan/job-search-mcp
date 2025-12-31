@@ -1,6 +1,7 @@
 """MCP server for job-resume matching."""
 
 import logging
+
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 import truststore
