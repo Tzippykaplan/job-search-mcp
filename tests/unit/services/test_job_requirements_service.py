@@ -4,20 +4,36 @@ from job_mcp.services.job_requirements_service import JobRequirementsService
 
 
 class FakeLLM:
+    """
+    Fake for the NEW LLM interface used by JobRequirementsService:
+    it must expose: async generate_text(prompt: str) -> str
+    """
     def __init__(self) -> None:
-        self.calls = []
+        self.calls: list[str] = []
+        self.last_prompt: str | None = None
 
-    def extract_job(self, job_text: str, title_hint: str | None = None):
-        self.calls.append((job_text, title_hint))
-        return {
-            "title": title_hint or "Backend Developer",
-            "company": "TestCorp",
+    async def generate_text(self, prompt: str) -> str:
+        self.calls.append(prompt)
+        self.last_prompt = prompt
+
+        # Return valid JSON (the service robust_json_loads/json parsing expects this)
+        return """
+        {
+          "title": "Title From HTML",
+          "company": "TestCorp",
+          "location": null,
+          "years_experience": ["2 years"],
+          "must_have_tech": ["Python", "SQL"],
+          "nice_to_have_tech": [],
+          "soft_skills": [],
+          "notes": []
         }
+        """
 
 
 @pytest.mark.asyncio
 async def test_extract_raises_when_no_input():
-    service = JobRequirementsService(llm=FakeLLM())
+    service = JobRequirementsService(llm=FakeLLM())  # type: ignore[arg-type]
     with pytest.raises(ValueError):
         await service.extract()
 
@@ -30,14 +46,20 @@ async def test_extract_with_job_url_uses_fetcher_and_passes_title_hint():
         assert url == "https://example.com/job"
         return ("Title From HTML", "Requirements: Python, SQL. Must have 2 years.")
 
-    service = JobRequirementsService(llm=llm, fetcher=fake_fetcher)
+    service = JobRequirementsService(llm=llm, fetcher=fake_fetcher)  # type: ignore[arg-type]
 
     result = await service.extract(job_url="https://example.com/job")
 
     assert result["source"] == "job_url"
     assert result["job_url"] == "https://example.com/job"
-    assert result["extracted"]["title"] == "Title From HTML"
-    assert llm.calls[0][1] == "Title From HTML"  # title_hint passed
+
+    assert "extracted" in result
+    assert result["extracted"]["title"] == "Title From HTML"  # from our fake JSON
+
+    # Ensure LLM was called once and title_hint made it into the prompt
+    assert len(llm.calls) == 1
+    assert llm.last_prompt is not None
+    assert "title_hint: Title From HTML" in llm.last_prompt
 
 
 @pytest.mark.asyncio
@@ -47,7 +69,7 @@ async def test_extract_blocked_when_fetcher_returns_empty_and_llm_not_called():
     async def fake_fetcher(url: str):
         return (None, "")
 
-    service = JobRequirementsService(llm=llm, fetcher=fake_fetcher)
+    service = JobRequirementsService(llm=llm, fetcher=fake_fetcher)  # type: ignore[arg-type]
 
     result = await service.extract(job_url="https://blocked.com")
 
