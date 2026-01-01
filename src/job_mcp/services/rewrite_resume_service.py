@@ -6,7 +6,7 @@ import re
 from typing import Any, Callable
 
 from job_mcp.config import MAX_RESUME_LENGTH
-from job_mcp.interfaces.llm_gemini_client import GeminiLLMClient
+from job_mcp.adapters.llm_gemini_client import GeminiLLMClient
 from job_mcp.utils.gemini_helpers import as_list, robust_json_loads
 from job_mcp.utils.read_resume import read_resume_any
 
