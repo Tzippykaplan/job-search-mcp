@@ -1,11 +1,18 @@
 from __future__ import annotations
 
-import logging
 from typing import Any
 
-from job_mcp.utils.export_resume_docx import export_resume_to_docx
+from job_mcp.services.export_resume_docx_service import ExportResumeDocxService
 
-logger = logging.getLogger(__name__)
+_service: ExportResumeDocxService | None = None
+
+
+def _get_service() -> ExportResumeDocxService:
+    """Get or create the ExportResumeDocxService singleton."""
+    global _service
+    if _service is None:
+        _service = ExportResumeDocxService()
+    return _service
 
 
 async def export_resume_docx_tool(
@@ -27,20 +34,10 @@ async def export_resume_docx_tool(
     Output:
       - { "saved_path": "...", "file_name": "...", "output_dir": "..." }
     """
-    logger.info(f"Exporting resume to DOCX: {output_dir}")
-
-    saved_path = export_resume_to_docx(
-        resume_text=rewritten_resume,
+    service = _get_service()
+    return await service.export(
+        rewritten_resume=rewritten_resume,
         output_dir=output_dir,
         file_name=file_name,
         add_timestamp=add_timestamp,
     )
-
-    logger.info(f"Resume successfully saved to: {saved_path}")
-
-    return {
-        "saved_path": saved_path,
-        "file_name": file_name,
-        "output_dir": output_dir,
-        "add_timestamp": add_timestamp,
-    }
