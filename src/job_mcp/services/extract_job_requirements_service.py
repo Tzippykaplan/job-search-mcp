@@ -8,19 +8,20 @@ from job_mcp.adapters.job_page_fetcher import fetch_job_page, extract_requiremen
 from job_mcp.config import MAX_JOB_TEXT_LENGTH
 from job_mcp.utils.gemini_helpers import robust_json_loads
 from job_mcp.adapters.gemini_client import GeminiLLMClient
-FetchJobPage = Callable[[str], Awaitable[tuple[str | None, str]]]
+
+JobPageFetcher = Callable[[str], Awaitable[tuple[str | None, str]]]
 
 
-class JobRequirementsService:
+class JobRequirementsExtractionService:
     def __init__(
         self,
         llm: GeminiLLMClient | None = None,
-        fetcher: FetchJobPage = fetch_job_page,
+        job_page_fetcher: JobPageFetcher = fetch_job_page,
     ) -> None:
         self._llm = llm or GeminiLLMClient()
-        self._fetcher = fetcher
+        self._job_page_fetcher = job_page_fetcher
 
-    async def extract(
+    async def extract_job_requirements(
         self,
         job_url: str | None = None,
         job_text: str | None = None,
@@ -29,12 +30,12 @@ class JobRequirementsService:
             raise ValueError("Provide either job_url or job_text")
 
         title_hint: str | None = None
-        text: str | None = job_text
+        job_posting_text: str | None = job_text
 
-        if not text and job_url:
-            title_hint, text = await self._fetcher(job_url)
+        if not job_posting_text and job_url:
+            title_hint, job_posting_text = await self._job_page_fetcher(job_url)
 
-        if not text:
+        if not job_posting_text:
             return {
                 "source": "job_url" if job_url else "job_text",
                 "job_url": job_url,
@@ -42,18 +43,18 @@ class JobRequirementsService:
                 "message": "Site blocked scraping (403) or empty page. Paste the job content into job_text instead.",
             }
 
-        text = text[:MAX_JOB_TEXT_LENGTH]
-        focused = extract_requirements_section(text)
+        job_posting_text = job_posting_text[:MAX_JOB_TEXT_LENGTH]
+        requirements_section = extract_requirements_section(job_posting_text)
 
-        prompt = self._build_extract_job_prompt(
-            job_text=focused,
+        prompt = self._build_extraction_prompt(
+            job_text=requirements_section,
             title_hint=title_hint,
         )
 
-        raw = await self._llm.generate_text(prompt)
+        llm_response = await self._llm.generate_text(prompt)
 
         try:
-            extracted = robust_json_loads(raw)
+            parsed_requirements = robust_json_loads(llm_response)
         except json.JSONDecodeError as e:
             # keep the error explicit to the caller
             raise ValueError(
@@ -63,10 +64,10 @@ class JobRequirementsService:
         return {
             "source": "job_url" if job_url else "job_text",
             "job_url": job_url,
-            "extracted": extracted,
+            "extracted": parsed_requirements,
         }
 
-    def _build_extract_job_prompt(self, *, job_text: str, title_hint: str | None) -> str:
+    def _build_extraction_prompt(self, *, job_text: str, title_hint: str | None) -> str:
         return f"""
 Return ONLY JSON (no markdown, no ```). No extra text.
 

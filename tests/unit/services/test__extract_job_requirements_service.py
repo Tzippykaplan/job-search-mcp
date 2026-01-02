@@ -1,11 +1,11 @@
 import pytest
 
-from job_mcp.services.job_requirements_service import JobRequirementsService
+from job_mcp.services.extract_job_requirements_service import JobRequirementsExtractionService
 
 
 class FakeLLM:
     """
-    Fake for the NEW LLM interface used by JobRequirementsService:
+    Fake for the NEW LLM interface used by JobRequirementsExtractionService:
     it must expose: async generate_text(prompt: str) -> str
     """
     def __init__(self) -> None:
@@ -33,9 +33,9 @@ class FakeLLM:
 
 @pytest.mark.asyncio
 async def test_extract_raises_when_no_input():
-    service = JobRequirementsService(llm=FakeLLM())  # type: ignore[arg-type]
+    service = JobRequirementsExtractionService(llm=FakeLLM())  # type: ignore[arg-type]
     with pytest.raises(ValueError):
-        await service.extract()
+        await service.extract_job_requirements()
 
 
 @pytest.mark.asyncio
@@ -46,9 +46,9 @@ async def test_extract_with_job_url_uses_fetcher_and_passes_title_hint():
         assert url == "https://example.com/job"
         return ("Title From HTML", "Requirements: Python, SQL. Must have 2 years.")
 
-    service = JobRequirementsService(llm=llm, fetcher=fake_fetcher)  # type: ignore[arg-type]
+    service = JobRequirementsExtractionService(llm=llm, job_page_fetcher=fake_fetcher)  # type: ignore[arg-type]
 
-    result = await service.extract(job_url="https://example.com/job")
+    result = await service.extract_job_requirements(job_url="https://example.com/job")
 
     assert result["source"] == "job_url"
     assert result["job_url"] == "https://example.com/job"
@@ -69,9 +69,9 @@ async def test_extract_blocked_when_fetcher_returns_empty_and_llm_not_called():
     async def fake_fetcher(url: str):
         return (None, "")
 
-    service = JobRequirementsService(llm=llm, fetcher=fake_fetcher)  # type: ignore[arg-type]
+    service = JobRequirementsExtractionService(llm=llm, job_page_fetcher=fake_fetcher)  # type: ignore[arg-type]
 
-    result = await service.extract(job_url="https://blocked.com")
+    result = await service.extract_job_requirements(job_url="https://blocked.com")
 
     assert result["error"] == "blocked_by_site"
     assert "message" in result
