@@ -37,10 +37,14 @@ def focus_on_requirements(text: str) -> str:
     for p in patterns:
         m = re.search(p, lower, flags=re.IGNORECASE)
         if m:
-            head = text[:1500]
             start = max(0, m.start() - 300)
             end = min(len(text), m.start() + 9000)
-            return (head + "\n\n" + text[start:end]).strip()
+            # Only include head if the match is far from the beginning
+            if start > 1500:
+                head = text[:1500]
+                return (head + "\n\n" + text[start:end]).strip()
+            else:
+                return text[start:end].strip()
 
     return text
 
