@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 import truststore
 
+from job_mcp.config import SYSTEM_PROMPT
+
 truststore.inject_into_ssl()
 
 load_dotenv()
@@ -63,6 +65,13 @@ async def tool_export_resume_docx(
 ):
     return await export_resume_docx_tool(rewritten_resume, output_dir, file_name, add_timestamp)
 
+@mcp.prompt(
+    name="job_search_assistant",
+    description="End-to-end job application assistant that proactively analyzes jobs and adapts resumes."
+)
+def job_search_assistant_prompt() -> str:
+    """Return system prompt for the job search assistant agent."""
+    return SYSTEM_PROMPT
 
 if __name__ == "__main__":
     logger.info("Starting Job Search MCP server...")
