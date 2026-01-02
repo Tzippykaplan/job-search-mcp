@@ -7,7 +7,7 @@ from job_mcp.adapters.job_page_fetcher import fetch_job_page, extract_requiremen
 
 from job_mcp.config import MAX_JOB_TEXT_LENGTH
 from job_mcp.utils.gemini_helpers import robust_json_loads
-from job_mcp.adapters.llm_gemini_client import GeminiLLMClient
+from job_mcp.adapters.gemini_client import GeminiLLMClient
 FetchJobPage = Callable[[str], Awaitable[tuple[str | None, str]]]
 
 

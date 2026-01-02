@@ -1,7 +1,7 @@
 import pytest
 
-from job_mcp.adapters.llm_gemini_client import GeminiLLMClient
-import job_mcp.adapters.llm_gemini_client as mod
+from job_mcp.adapters.gemini_client import GeminiLLMClient
+import job_mcp.adapters.gemini_client as mod
 
 class FakeModels:
     def __init__(self):

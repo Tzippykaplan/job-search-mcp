@@ -4,7 +4,7 @@ import json
 import logging
 from typing import Any
 
-from job_mcp.adapters.llm_gemini_client import GeminiLLMClient
+from job_mcp.adapters.gemini_client import GeminiLLMClient
 from job_mcp.utils.gemini_helpers import as_list
 
 logger = logging.getLogger(__name__)
