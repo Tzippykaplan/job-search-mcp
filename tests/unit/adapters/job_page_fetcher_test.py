@@ -2,7 +2,7 @@ import pytest
 import httpx
 
 
-from job_mcp.adapters.job_fetcher_httpx import fetch_job_page, extract_title_from_html, html_to_text, focus_on_requirements   
+from job_mcp.adapters.job_page_fetcher import fetch_job_page, extract_title_from_html, parse_html_to_clean_text, extract_requirements_section   
 
 
 def test_extract_title_prefers_og_title():
@@ -27,7 +27,7 @@ def test_extract_title_returns_none_when_missing():
     assert extract_title_from_html(html) is None
 
 
-def test_html_to_text_removes_unwanted_tags():
+def test_parse_html_to_clean_text_removes_unwanted_tags():
     html = """
     <html>
       <head>
@@ -46,7 +46,7 @@ def test_html_to_text_removes_unwanted_tags():
       </body>
     </html>
     """
-    out = html_to_text(html)
+    out = parse_html_to_clean_text(html)
 
     assert "HEADER" not in out
     assert "NAV" not in out
@@ -57,30 +57,30 @@ def test_html_to_text_removes_unwanted_tags():
     assert "World" in out
 
 
-def test_html_to_text_collapses_excess_newlines():
+def test_parse_html_to_clean_text_collapses_excess_newlines():
     html = "<html><body><p>A</p><p>B</p><p>C</p></body></html>"
-    out = html_to_text(html)
+    out = parse_html_to_clean_text(html)
 
     assert "\n\n\n" not in out
     assert "A" in out and "B" in out and "C" in out
 
 
-def test_focus_on_requirements_extracts_relevant_section():
+def test_extract_requirements_section_extracts_relevant_section():
     text = (
         "Intro " * 300 +
         "Requirements:\n- Python\n- SQL\n" +
         "Footer " * 300
     )
 
-    out = focus_on_requirements(text)
+    out = extract_requirements_section(text)
 
     assert "Requirements" in out or "requirements" in out
     assert len(out) < len(text)  # focused slice
 
 
-def test_focus_on_requirements_returns_original_when_no_match():
+def test_extract_requirements_section_returns_original_when_no_match():
     text = "This is a general description with no keywords."
-    assert focus_on_requirements(text) == text
+    assert extract_requirements_section(text) == text
 
 
 class FakeResponse:

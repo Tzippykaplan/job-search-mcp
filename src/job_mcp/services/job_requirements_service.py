@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any, Awaitable, Callable
 
-from job_mcp.adapters.job_fetcher_httpx import fetch_job_page, focus_on_requirements
+from job_mcp.adapters.job_page_fetcher import fetch_job_page, extract_requirements_section
 
 from job_mcp.config import MAX_JOB_TEXT_LENGTH
 from job_mcp.utils.gemini_helpers import robust_json_loads
@@ -43,7 +43,7 @@ class JobRequirementsService:
             }
 
         text = text[:MAX_JOB_TEXT_LENGTH]
-        focused = focus_on_requirements(text)
+        focused = extract_requirements_section(text)
 
         prompt = self._build_extract_job_prompt(
             job_text=focused,
