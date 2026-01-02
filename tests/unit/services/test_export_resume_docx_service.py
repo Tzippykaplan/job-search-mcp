@@ -24,7 +24,7 @@ async def test_export_calls_export_resume_to_docx_and_returns_metadata(monkeypat
 
     svc = ExportResumeDocxService()
     out = await svc.export(
-        rewritten_resume="MY RESUME TEXT",
+        resume_text="MY RESUME TEXT",
         output_dir="output_resumes",
         file_name="my_resume",
         add_timestamp=False,
@@ -38,7 +38,6 @@ async def test_export_calls_export_resume_to_docx_and_returns_metadata(monkeypat
     }
     assert out == {
         "saved_path": r"C:\tmp\output_resumes\resume.docx",
-        "file_name": "my_resume",
         "output_dir": "output_resumes",
         "add_timestamp": False,
     }
@@ -59,9 +58,8 @@ async def test_export_uses_defaults(monkeypatch):
     )
 
     svc = ExportResumeDocxService()
-    out = await svc.export(rewritten_resume="TEXT")
+    out = await svc.export(resume_text="TEXT")
 
     assert out["saved_path"] == "saved.docx"
     assert out["output_dir"] == "output_resumes"
-    assert out["file_name"] is None
     assert out["add_timestamp"] is True

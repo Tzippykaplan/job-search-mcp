@@ -9,17 +9,39 @@ logger = logging.getLogger(__name__)
 
 
 class ExportResumeDocxService:
+    """
+    Service for exporting resumes to Microsoft Word DOCX format.
+    
+    Handles the conversion of plain text resumes into professionally
+    formatted DOCX files suitable for ATS systems and job applications.
+    """
+
     async def export(
         self,
-        rewritten_resume: str,
+        resume_text: str,
         output_dir: str = "output_resumes",
         file_name: str | None = None,
         add_timestamp: bool = True,
     ) -> dict[str, Any]:
+        """
+        Export resume text as a DOCX file.
+        
+        Args:
+            resume_text: The resume content as plain text.
+            output_dir: Directory to save the file (default: "output_resumes").
+            file_name: Base filename without extension (default: "rewritten_resume").
+            add_timestamp: Whether to append timestamp to filename (default: True).
+        
+        Returns:
+            Dictionary containing:
+                - saved_path: Absolute path to the saved DOCX file
+                - output_dir: Directory where file was saved
+                - add_timestamp: Whether timestamp was added
+        """
         logger.info("Exporting resume to DOCX: %s", output_dir)
 
         saved_path = export_resume_to_docx(
-            resume_text=rewritten_resume,
+            resume_text=resume_text,
             output_dir=output_dir,
             file_name=file_name,
             add_timestamp=add_timestamp,
@@ -29,7 +51,6 @@ class ExportResumeDocxService:
 
         return {
             "saved_path": saved_path,
-            "file_name": file_name,
             "output_dir": output_dir,
             "add_timestamp": add_timestamp,
         }

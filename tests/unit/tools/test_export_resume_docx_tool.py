@@ -14,8 +14,8 @@ class FakeService:
             "add_timestamp": True,
         }
 
-    async def export(self, *, rewritten_resume: str, output_dir: str, file_name: str | None, add_timestamp: bool):
-        self.calls.append((rewritten_resume, output_dir, file_name, add_timestamp))
+    async def export(self, *, resume_text: str, output_dir: str, file_name: str | None, add_timestamp: bool):
+        self.calls.append((resume_text, output_dir, file_name, add_timestamp))
         return self.result
 
 

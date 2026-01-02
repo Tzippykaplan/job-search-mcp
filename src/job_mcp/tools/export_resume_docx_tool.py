@@ -36,7 +36,7 @@ async def export_resume_docx_tool(
     """
     service = _get_service()
     return await service.export(
-        rewritten_resume=rewritten_resume,
+        resume_text=rewritten_resume,
         output_dir=output_dir,
         file_name=file_name,
         add_timestamp=add_timestamp,
