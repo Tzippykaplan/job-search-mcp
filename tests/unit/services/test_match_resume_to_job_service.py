@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import pytest
 
-from job_mcp.services.match_resume_service import MatchResumeService
+from job_mcp.services.match_resume_to_job_service import MatchResumeService
 
 
 class FakeGeminiLLMClient:
@@ -41,7 +41,7 @@ async def test_match_happy_path_parses_and_normalizes() -> None:
     job_extracted = {"must_have_tech": ["Python", "Django"], "nice_to_have_tech": ["Kubernetes"]}
     resume_text = "  I worked with Python and Django for 3 years.  "
 
-    result = await svc.match(job_extracted, resume_text)
+    result = await svc.match_resume_to_job_requirements(job_extracted, resume_text)
 
     assert llm.calls == 1
     assert llm.last_prompt is not None
@@ -69,14 +69,14 @@ async def test_match_builds_prompt_includes_job_and_resume_snippet() -> None:
     job_extracted = {"title": "Backend Engineer", "must_have_tech": ["Python"]}
     resume_text = "Experienced in Python."
 
-    await svc.match(job_extracted, resume_text)
+    await svc.match_resume_to_job_requirements(job_extracted, resume_text)
 
     assert llm.last_prompt is not None
     prompt = llm.last_prompt
 
     # Basic prompt invariants
     assert "Return ONLY valid JSON" in prompt
-    assert "job_extracted:" in prompt
+    assert "job_requirements:" in prompt
     assert "resume_text:" in prompt
 
     # Ensure job_extracted JSON got embedded
@@ -93,7 +93,7 @@ async def test_match_raises_on_empty_resume_text() -> None:
     svc = MatchResumeService(llm=llm)  # type: ignore[arg-type]
 
     with pytest.raises(ValueError, match="resume_text required"):
-        await svc.match(job_extracted={"x": 1}, resume_text="   ")
+        await svc.match_resume_to_job_requirements(job_requirements={"x": 1}, resume_text="   ")
 
     assert llm.calls == 0
 
@@ -104,7 +104,7 @@ async def test_match_raises_when_llm_returns_invalid_json() -> None:
     svc = MatchResumeService(llm=llm)  # type: ignore[arg-type]
 
     with pytest.raises(ValueError, match="Gemini returned invalid JSON for match_resume"):
-        await svc.match(job_extracted={"x": 1}, resume_text="ok")
+        await svc.match_resume_to_job_requirements(job_requirements={"x": 1}, resume_text="ok")
 
     assert llm.calls == 1
 
@@ -115,7 +115,7 @@ async def test_match_raises_when_llm_returns_non_object_json() -> None:
     svc = MatchResumeService(llm=llm)  # type: ignore[arg-type]
 
     with pytest.raises(ValueError, match="not an object"):
-        await svc.match(job_extracted={"x": 1}, resume_text="ok")
+        await svc.match_resume_to_job_requirements(job_requirements={"x": 1}, resume_text="ok")
 
     assert llm.calls == 1
 
@@ -126,7 +126,7 @@ async def test_match_normalizes_missing_fields_defaults_and_score_clamps() -> No
     llm = FakeGeminiLLMClient('{"score": 999, "matched_keywords": "Python"}')
     svc = MatchResumeService(llm=llm)  # type: ignore[arg-type]
 
-    result = await svc.match(job_extracted={"x": 1}, resume_text="ok")
+    result = await svc.match_resume_to_job_requirements(job_requirements={"x": 1}, resume_text="ok")
 
     # score clamp to 100
     assert result["score"] == 100
@@ -147,5 +147,5 @@ async def test_match_normalizes_non_numeric_score_to_zero() -> None:
     )
     svc = MatchResumeService(llm=llm)  # type: ignore[arg-type]
 
-    result = await svc.match(job_extracted={"x": 1}, resume_text="ok")
+    result = await svc.match_resume_to_job_requirements(job_requirements={"x": 1}, resume_text="ok")
     assert result["score"] == 0

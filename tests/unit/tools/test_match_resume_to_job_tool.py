@@ -15,8 +15,8 @@ class FakeService:
             "gaps": [],
         }
 
-    async def match(self, job_extracted, resume_text):
-        self.calls.append((job_extracted, resume_text))
+    async def match_resume_to_job_requirements(self, job_requirements, resume_text):
+        self.calls.append((job_requirements, resume_text))
         return self.result
 
 
