@@ -35,12 +35,19 @@ async def tool_extract_job_requirements(job_url: str | None = None, job_text: st
     name="match_resume_to_job",
     description="Evaluate how well a resume matches a job. Returns match score (0-100) + strengths, gaps, missing keywords."
 )
-async def tool_match_resume_to_job(job_requirements: dict, resume_text: str):
+async def tool_match_resume_to_job(
+    job_requirements: dict,
+    resume_text: str | None = None,
+    resume_file_path: str | None = None,
+):
     job_requirements = require_dict("job_requirements", job_requirements)
-    resume_text = require_str("resume_text", resume_text)
+    
+    require_one_of(resume_text=resume_text, resume_file_path=resume_file_path)
+    resume_text = require_str("resume_text", resume_text, allow_none=True)
+    resume_file_path = require_str("resume_file_path", resume_file_path, allow_none=True)
 
     requirements = job_requirements.get("extracted", job_requirements)
-    return await match_resume_to_job(requirements, resume_text)
+    return await match_resume_to_job(requirements, resume_text, resume_file_path)
 
 
 @mcp.tool(

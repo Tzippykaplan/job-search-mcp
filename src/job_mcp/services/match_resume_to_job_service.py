@@ -2,24 +2,38 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import Any, Callable
 
 from job_mcp.adapters.gemini_client import GeminiLLMClient
 from job_mcp.utils.gemini_helpers import as_list
+from job_mcp.utils.read_resume import read_resume_any
 
 logger = logging.getLogger(__name__)
+ReadResume = Callable[[str], str]
 
 
 class MatchResumeService:
-    def __init__(self, llm: GeminiLLMClient | None = None) -> None:
+    def __init__(
+        self,
+        llm: GeminiLLMClient | None = None,
+        resume_reader: ReadResume = read_resume_any,
+    ) -> None:
         self._llm = llm or GeminiLLMClient()
+        self._resume_reader = resume_reader
 
     async def match_resume_to_job_requirements(
-        self, job_requirements: dict[str, Any], resume_text: str
+        self,
+        job_requirements: dict[str, Any],
+        resume_text: str | None = None,
+        resume_file_path: str | None = None,
     ) -> dict[str, Any]:
+        if resume_file_path:
+            logger.info("Reading resume from file: %s", resume_file_path)
+            resume_text = self._resume_reader(resume_file_path)
+
         resume_text = (resume_text or "").strip()
         if not resume_text:
-            raise ValueError("resume_text required")
+            raise ValueError("Provide either resume_text or resume_file_path")
 
         logger.info("Matching resume to job...")
         prompt = self._build_matching_prompt(job_requirements, resume_text)

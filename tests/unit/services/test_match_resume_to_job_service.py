@@ -41,7 +41,7 @@ async def test_match_happy_path_parses_and_normalizes() -> None:
     job_extracted = {"must_have_tech": ["Python", "Django"], "nice_to_have_tech": ["Kubernetes"]}
     resume_text = "  I worked with Python and Django for 3 years.  "
 
-    result = await svc.match_resume_to_job_requirements(job_extracted, resume_text)
+    result = await svc.match_resume_to_job_requirements(job_extracted, resume_text=resume_text)
 
     assert llm.calls == 1
     assert llm.last_prompt is not None
@@ -69,7 +69,7 @@ async def test_match_builds_prompt_includes_job_and_resume_snippet() -> None:
     job_extracted = {"title": "Backend Engineer", "must_have_tech": ["Python"]}
     resume_text = "Experienced in Python."
 
-    await svc.match_resume_to_job_requirements(job_extracted, resume_text)
+    await svc.match_resume_to_job_requirements(job_extracted, resume_text=resume_text)
 
     assert llm.last_prompt is not None
     prompt = llm.last_prompt
@@ -92,7 +92,7 @@ async def test_match_raises_on_empty_resume_text() -> None:
     llm = FakeGeminiLLMClient("{}",)
     svc = MatchResumeService(llm=llm)  # type: ignore[arg-type]
 
-    with pytest.raises(ValueError, match="resume_text required"):
+    with pytest.raises(ValueError, match="Provide either resume_text or resume_file_path"):
         await svc.match_resume_to_job_requirements(job_requirements={"x": 1}, resume_text="   ")
 
     assert llm.calls == 0
@@ -107,6 +107,28 @@ async def test_match_raises_when_llm_returns_invalid_json() -> None:
         await svc.match_resume_to_job_requirements(job_requirements={"x": 1}, resume_text="ok")
 
     assert llm.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_match_accepts_resume_file_path() -> None:
+    llm = FakeGeminiLLMClient(
+        '{"score": 75, "matched_keywords": ["Python"], "missing_keywords": [], "strengths": ["Good exp"], "gaps": []}'
+    )
+    
+    def fake_reader(path: str) -> str:
+        assert path == "resume.txt"
+        return "Python developer with 5 years experience"
+    
+    svc = MatchResumeService(llm=llm, resume_reader=fake_reader)  # type: ignore[arg-type]
+
+    result = await svc.match_resume_to_job_requirements(
+        job_requirements={"must_have_tech": ["Python"]},
+        resume_file_path="resume.txt"
+    )
+
+    assert result["score"] == 75
+    assert llm.calls == 1
+    assert "Python developer" in llm.last_prompt
 
 
 @pytest.mark.asyncio
