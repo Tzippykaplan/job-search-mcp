@@ -21,9 +21,8 @@ class FakeService:
 
 @pytest.mark.asyncio
 async def test_export_resume_docx_tool_forwards_params(monkeypatch):
-    tool_mod._service = None
     fake = FakeService()
-    monkeypatch.setattr(tool_mod, "_get_service", lambda: fake)
+    monkeypatch.setattr(tool_mod, "ExportResumeDocxService", lambda: fake)
 
     out = await tool_mod.export_resume_docx_tool(
         rewritten_resume="TEXT",
@@ -34,20 +33,3 @@ async def test_export_resume_docx_tool_forwards_params(monkeypatch):
 
     assert out == fake.result
     assert fake.calls == [("TEXT", "output_resumes", "cv", False)]
-
-
-def test_get_service_is_singleton(monkeypatch):
-    tool_mod._service = None
-    created = []
-
-    class FakeExportResumeDocxService:
-        def __init__(self):
-            created.append(1)
-
-    monkeypatch.setattr(tool_mod, "ExportResumeDocxService", FakeExportResumeDocxService)
-
-    s1 = tool_mod._get_service()
-    s2 = tool_mod._get_service()
-
-    assert s1 is s2
-    assert len(created) == 1

@@ -4,16 +4,6 @@ from typing import Any
 
 from job_mcp.services.export_resume_docx_service import ExportResumeDocxService
 
-_service: ExportResumeDocxService | None = None
-
-
-def _get_service() -> ExportResumeDocxService:
-    """Get or create the ExportResumeDocxService singleton."""
-    global _service
-    if _service is None:
-        _service = ExportResumeDocxService()
-    return _service
-
 
 async def export_resume_docx_tool(
     rewritten_resume: str,
@@ -34,7 +24,7 @@ async def export_resume_docx_tool(
     Output:
       - { "saved_path": "...", "file_name": "...", "output_dir": "..." }
     """
-    service = _get_service()
+    service = ExportResumeDocxService()
     return await service.export(
         resume_text=rewritten_resume,
         output_dir=output_dir,

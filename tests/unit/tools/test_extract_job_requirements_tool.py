@@ -1,6 +1,6 @@
 import pytest
 import asyncio
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch
 
 from job_mcp.tools import extract_job_requirements_tool
 
@@ -16,7 +16,7 @@ class DummyService:
 @pytest.mark.asyncio
 async def test_extract_job_requirements_delegates_to_service():
     dummy = DummyService()
-    with patch.object(extract_job_requirements_tool, "_get_service", return_value=dummy):
+    with patch.object(extract_job_requirements_tool, "JobRequirementsExtractionService", return_value=dummy):
         result = await extract_job_requirements_tool.extract_job_requirements(job_url="url", job_text="text")
         assert dummy.called
         assert dummy.last_args == ("url", "text")
@@ -30,6 +30,6 @@ async def test_extract_job_requirements_raises_on_no_input():
     async def raise_value_error(*a, **kw):
         raise ValueError("Provide either job_url or job_text")
     dummy.extract_job_requirements = raise_value_error
-    with patch.object(extract_job_requirements_tool, "_get_service", return_value=dummy):
+    with patch.object(extract_job_requirements_tool, "JobRequirementsExtractionService", return_value=dummy):
         with pytest.raises(ValueError):
             await extract_job_requirements_tool.extract_job_requirements()
