@@ -1,5 +1,6 @@
 """MCP server for job-resume matching."""
 import logging
+import os
 
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
@@ -8,9 +9,13 @@ import truststore
 from job_mcp.config import SYSTEM_PROMPT
 from job_mcp.utils.validation import require_str, require_dict, require_one_of
 from job_mcp.exceptions import ValidationError
+from job_mcp.utils.logger import setup_logging
 
 truststore.inject_into_ssl()
 load_dotenv()
+
+# Setup logging before anything else
+setup_logging(level=os.getenv("LOG_LEVEL", "INFO"))
 
 mcp = FastMCP("job-search-mcp")
 
@@ -27,6 +32,7 @@ logger = logging.getLogger(__name__)
     description="Extract structured job requirements from a job URL or job description text. Returns title, company, location, skills, years, and notes."
 )
 async def tool_extract_job_requirements(job_url: str | None = None, job_text: str | None = None):
+    logger.info("Tool called: extract_job_requirements", extra={"has_url": bool(job_url), "has_text": bool(job_text)})
     require_one_of(job_url=job_url, job_text=job_text)
     job_url = require_str("job_url", job_url, allow_none=True)
     job_text = require_str("job_text", job_text, allow_none=True)
@@ -41,6 +47,7 @@ async def tool_match_resume_to_job(
     resume_text: str | None = None,
     resume_file_path: str | None = None,
 ):
+    logger.info("Tool called: match_resume_to_job", extra={"has_text": bool(resume_text), "has_file": bool(resume_file_path)})
     job_requirements = require_dict("job_requirements", job_requirements)
     
     require_one_of(resume_text=resume_text, resume_file_path=resume_file_path)
@@ -61,6 +68,7 @@ async def tool_rewrite_resume_for_job(
     resume_text: str | None = None,
     resume_file_path: str | None = None,
 ):
+    logger.info("Tool called: rewrite_resume_for_job", extra={"has_text": bool(resume_text), "has_file": bool(resume_file_path)})
     job_requirements = require_dict("job_requirements", job_requirements)
     match_result = require_dict("match_result", match_result)
 
@@ -86,6 +94,7 @@ async def tool_export_resume_docx(
     file_name: str | None = None,
     add_timestamp: bool = True,
 ):
+    logger.info("Tool called: export_resume_docx", extra={"output_dir": output_dir, "add_timestamp": add_timestamp})
     rewritten_resume = require_str("rewritten_resume", rewritten_resume)
     output_dir = require_str("output_dir", output_dir)
     file_name = require_str("file_name", file_name, allow_none=True)

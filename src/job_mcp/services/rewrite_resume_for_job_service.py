@@ -31,12 +31,18 @@ class RewriteResumeService:
         resume_text: str | None = None,
         resume_file_path: str | None = None,
     ) -> dict[str, Any]:
+        logger.info("Starting resume rewrite", extra={
+            "source": "file" if resume_file_path else "text"
+        })
+        
         if resume_file_path:
-            logger.info("Reading resume from file: %s", resume_file_path)
+            logger.info("Reading resume from file", extra={"path": resume_file_path})
             resume_text = self._resume_reader(resume_file_path)
+            logger.debug("Resume loaded from file", extra={"length": len(resume_text)})
 
         resume_text = (resume_text or "").strip()
         if not resume_text:
+            logger.error("Validation failed: no resume text provided")
             raise ValidationError("Provide either resume_text or resume_file_path")
 
         extracted = (job_requirements or {}).get("extracted", job_requirements)
@@ -50,9 +56,10 @@ class RewriteResumeService:
     ) -> dict[str, Any]:
         resume_text = self._compact_text(resume_text)
         if not resume_text:
+            logger.error("Resume text is empty after compacting")
             raise ValidationError("resume_text is required and cannot be empty")
 
-        logger.info("Starting resume rewrite...")
+        logger.debug("Resume text compacted", extra={"final_length": len(resume_text)})
 
         job_requirements = (job_requirements or {}).get("extracted", job_requirements)
 
@@ -75,16 +82,27 @@ class RewriteResumeService:
 
         truncated_resume_text = resume_text[:MAX_RESUME_LENGTH]
         prompt = self._build_rewrite_prompt(filtered_job_requirements, filtered_match_result, truncated_resume_text)
+        
+        logger.info("Calling Gemini API for resume rewrite", extra={"prompt_length": len(prompt)})
         llm_response = await self._llm.generate_text(prompt)
+        logger.debug("Received LLM response", extra={"response_length": len(llm_response)})
 
         try:
             parsed_rewrite_result = robust_json_loads(llm_response)
+            logger.info("Successfully parsed rewrite result", extra={
+                "result_type": type(parsed_rewrite_result).__name__
+            })
         except json.JSONDecodeError as e:
+            logger.error("Failed to parse LLM response as JSON", extra={
+                "error": str(e),
+                "response_preview": llm_response[:200]
+            }, exc_info=True)
             raise LLMResponseError(
                 f"Gemini returned invalid JSON. Could not rewrite resume. Error: {e}"
             ) from e
 
         if not isinstance(parsed_rewrite_result, dict):
+            logger.error("LLM returned non-dict JSON", extra={"type": type(parsed_rewrite_result).__name__})
             raise LLMResponseError("Gemini returned JSON but not an object for rewrite_resume")
 
         return self._normalize_rewrite_result(parsed_rewrite_result)
@@ -177,7 +195,6 @@ Rules for output:
                     resume_sections.append(f"{key}\n{txt}".strip())
             rewritten_resume = "\n\n".join(resume_sections).strip()
 
-        logger.info("Resume rewrite completed successfully")
         return {
             "sections": normalized_sections,
             "rewritten_resume": rewritten_resume,

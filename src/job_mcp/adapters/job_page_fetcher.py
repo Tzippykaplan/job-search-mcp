@@ -74,17 +74,41 @@ async def fetch_job_page(url: str) -> tuple[str | None, str]:
     Raises:
         httpx.HTTPStatusError: For HTTP errors other than 403.
     """
+    logger.info("Fetching job page", extra={"url": url})
+    
     async with httpx.AsyncClient(
         verify=True,
         follow_redirects=True,
         timeout=httpx.Timeout(connect=5.0, read=20.0, write=20.0, pool=20.0)
     ) as client:
-        response = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
-        if response.status_code == 403:
-            logger.warning(f"Job page blocked by site: {url}")
-            return None, ""
-        response.raise_for_status()
-        html = response.text
-        title = extract_title_from_html(html)
-        text = parse_html_to_clean_text(html)
-        return title, text
+        try:
+            response = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
+            
+            if response.status_code == 403:
+                logger.warning("Job page blocked by site (403)", extra={"url": url})
+                return None, ""
+            
+            response.raise_for_status()
+            logger.debug("Job page fetched successfully", extra={
+                "url": url,
+                "status_code": response.status_code,
+                "content_length": len(response.text)
+            })
+            
+            html = response.text
+            title = extract_title_from_html(html)
+            text = parse_html_to_clean_text(html)
+            
+            logger.info("Job page parsed", extra={
+                "title": title,
+                "text_length": len(text)
+            })
+            
+            return title, text
+            
+        except httpx.HTTPError as e:
+            logger.error("HTTP error fetching job page", extra={
+                "url": url,
+                "error": str(e)
+            }, exc_info=True)
+            raise

@@ -14,5 +14,8 @@ build/
 # Outputs
 output_resumes/
 
+# Logs
+logs/
+
 # Env
 .env

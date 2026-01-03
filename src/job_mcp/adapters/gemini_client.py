@@ -52,10 +52,22 @@ class GeminiLLMClient:
         Returns:
             Generated text with markdown code fences removed.
         """
+        logger.info("Calling Gemini API", extra={
+            "model": model,
+            "prompt_length": len(prompt)
+        })
+        
         response = await asyncio.to_thread(
             self._client.models.generate_content,
             model=model,
             contents=prompt,
         )
         text = (getattr(response, "text", "") or "").strip()
-        return strip_fences(text)
+        cleaned = strip_fences(text)
+        
+        logger.info("Gemini API response received", extra={
+            "response_length": len(cleaned),
+            "had_fences": len(text) != len(cleaned)
+        })
+        
+        return cleaned
