@@ -9,8 +9,8 @@ class FakeService:
         self.calls = []
         self.result = {"ok": True, "rewritten_resume": "FINAL"}
 
-    async def rewrite(self, *, job_extracted, match_result, resume_text=None, resume_file_path=None):
-        self.calls.append((job_extracted, match_result, resume_text, resume_file_path))
+    async def rewrite_resume_for_job(self, *, job_requirements, match_result, resume_text=None, resume_file_path=None):
+        self.calls.append((job_requirements, match_result, resume_text, resume_file_path))
         return self.result
 
 

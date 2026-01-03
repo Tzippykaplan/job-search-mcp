@@ -1,6 +1,6 @@
 from typing import Any
 
-from job_mcp.services.rewrite_resume_service import RewriteResumeService
+from job_mcp.services.rewrite_resume_for_job_service import RewriteResumeService
 
 _service: RewriteResumeService | None = None
 
@@ -21,8 +21,8 @@ async def rewrite_resume_for_job_tool(
 ) -> dict[str, Any]:
     """Rewrite a resume to better match a job posting."""
     service = _get_service()
-    return await service.rewrite(
-        job_extracted=job_extracted,
+    return await service.rewrite_resume_for_job(
+        job_requirements=job_extracted,
         match_result=match_result,
         resume_text=resume_text,
         resume_file_path=resume_file_path,

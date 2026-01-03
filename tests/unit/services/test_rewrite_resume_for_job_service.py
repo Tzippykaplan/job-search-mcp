@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import pytest
 
-from job_mcp.services.rewrite_resume_service import RewriteResumeService
+from job_mcp.services.rewrite_resume_for_job_service import RewriteResumeService
 
 
 class FakeLLM:
@@ -28,7 +28,7 @@ def fake_reader(path: str) -> str:
 async def test_rewrite_raises_when_no_resume_text_and_no_file():
     svc = RewriteResumeService(llm=FakeLLM("{}"))  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="Provide either resume_text or resume_file_path"):
-        await svc.rewrite(job_extracted={}, match_result={}, resume_text=None, resume_file_path=None)
+        await svc.rewrite_resume_for_job(job_requirements={}, match_result={}, resume_text=None, resume_file_path=None)
 
 
 @pytest.mark.asyncio
@@ -51,8 +51,8 @@ async def test_rewrite_reads_from_file_when_resume_file_path_provided():
     )
     svc = RewriteResumeService(llm=llm, resume_reader=fake_reader)  # type: ignore[arg-type]
 
-    out = await svc.rewrite(
-        job_extracted={"title": "Backend"},
+    out = await svc.rewrite_resume_for_job(
+        job_requirements={"title": "Backend"},
         match_result={"score": 70},
         resume_text=None,
         resume_file_path="resume.pdf",
@@ -78,8 +78,8 @@ async def test_rewrite_accepts_nested_job_extracted_extracted_key():
     )
     svc = RewriteResumeService(llm=llm)  # type: ignore[arg-type]
 
-    job_extracted = {"extracted": {"title": "Title A", "must_have_tech": ["Python"]}}
-    await svc.rewrite(job_extracted=job_extracted, match_result={}, resume_text="resume", resume_file_path=None)
+    job_requirements = {"extracted": {"title": "Title A", "must_have_tech": ["Python"]}}
+    await svc.rewrite_resume_for_job(job_requirements=job_requirements, match_result={}, resume_text="resume", resume_file_path=None)
 
     assert llm.last_prompt is not None
     assert '"title": "Title A"' in llm.last_prompt
@@ -99,14 +99,14 @@ async def test_rewrite_builds_prompt_with_filtered_payloads_and_calls_llm_once()
     )
     svc = RewriteResumeService(llm=llm)  # type: ignore[arg-type]
 
-    job_extracted = {
+    job_requirements = {
         "title": "Backend Engineer",
         "must_have_tech": ["Python", "Postgres"],
         "nice_to_have_tech": ["Kubernetes"],
         "years_experience": ["2+"],
         "responsibilities": ["Build APIs"],
         "notes": ["Hybrid"],
-        "should_not_leak": "SECRET",  # should not appear because job_small filters it out
+        "should_not_leak": "SECRET",  # should not appear because filtered_job_requirements filters it out
     }
     match_result = {
         "score": 80,
@@ -117,12 +117,12 @@ async def test_rewrite_builds_prompt_with_filtered_payloads_and_calls_llm_once()
         "other": "IGNORE",
     }
 
-    out = await svc.rewrite(job_extracted=job_extracted, match_result=match_result, resume_text="R", resume_file_path=None)
+    out = await svc.rewrite_resume_for_job(job_requirements=job_requirements, match_result=match_result, resume_text="R", resume_file_path=None)
 
     assert out["rewritten_resume"] == "FINAL"
     assert len(llm.calls) == 1
     assert llm.last_prompt is not None
-    assert "job_extracted (filtered):" in llm.last_prompt
+    assert "job_requirements (filtered):" in llm.last_prompt
     assert "match_result (filtered):" in llm.last_prompt
     assert "resume_text:" in llm.last_prompt
 
@@ -137,7 +137,7 @@ async def test_rewrite_invalid_json_from_llm_raises_clean_error():
     svc = RewriteResumeService(llm=llm)  # type: ignore[arg-type]
 
     with pytest.raises(ValueError, match="Gemini returned invalid JSON. Could not rewrite resume"):
-        await svc.rewrite(job_extracted={}, match_result={}, resume_text="resume", resume_file_path=None)
+        await svc.rewrite_resume_for_job(job_requirements={}, match_result={}, resume_text="resume", resume_file_path=None)
 
 
 @pytest.mark.asyncio
@@ -146,7 +146,7 @@ async def test_rewrite_non_object_json_raises():
     svc = RewriteResumeService(llm=llm)  # type: ignore[arg-type]
 
     with pytest.raises(ValueError, match="not an object"):
-        await svc.rewrite(job_extracted={}, match_result={}, resume_text="resume", resume_file_path=None)
+        await svc.rewrite_resume_for_job(job_requirements={}, match_result={}, resume_text="resume", resume_file_path=None)
 
 
 @pytest.mark.asyncio
@@ -170,7 +170,7 @@ async def test_rewrite_normalize_builds_rewritten_resume_when_missing():
     )
     svc = RewriteResumeService(llm=llm)  # type: ignore[arg-type]
 
-    out = await svc.rewrite(job_extracted={}, match_result={}, resume_text="resume", resume_file_path=None)
+    out = await svc.rewrite_resume_for_job(job_requirements={}, match_result={}, resume_text="resume", resume_file_path=None)
 
     assert "Summary\nSum" in out["rewritten_resume"]
     assert "Skills\nSkills" in out["rewritten_resume"]

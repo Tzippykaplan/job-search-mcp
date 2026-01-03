@@ -23,9 +23,9 @@ class RewriteResumeService:
         self._llm = llm or GeminiLLMClient()
         self._resume_reader = resume_reader
 
-    async def rewrite(
+    async def rewrite_resume_for_job(
         self,
-        job_extracted: dict[str, Any],
+        job_requirements: dict[str, Any],
         match_result: dict[str, Any],
         resume_text: str | None = None,
         resume_file_path: str | None = None,
@@ -38,12 +38,12 @@ class RewriteResumeService:
         if not resume_text:
             raise ValueError("Provide either resume_text or resume_file_path")
 
-        extracted = (job_extracted or {}).get("extracted", job_extracted)
-        return await self._rewrite(extracted, match_result, resume_text)
+        extracted = (job_requirements or {}).get("extracted", job_requirements)
+        return await self._rewrite_resume_with_llm(extracted, match_result, resume_text)
 
-    async def _rewrite(
+    async def _rewrite_resume_with_llm(
         self,
-        job_extracted: dict[str, Any],
+        job_requirements: dict[str, Any],
         match_result: dict[str, Any],
         resume_text: str,
     ) -> dict[str, Any]:
@@ -53,18 +53,18 @@ class RewriteResumeService:
 
         logger.info("Starting resume rewrite...")
 
-        job_extracted = (job_extracted or {}).get("extracted", job_extracted)
+        job_requirements = (job_requirements or {}).get("extracted", job_requirements)
 
-        job_small = {
-            "title": job_extracted.get("title") or job_extracted.get("role_title"),
-            "must_have_tech": job_extracted.get("must_have_tech", []),
-            "nice_to_have_tech": job_extracted.get("nice_to_have_tech", []),
-            "years_experience": job_extracted.get("years_experience"),
-            "responsibilities": job_extracted.get("responsibilities", []),
-            "notes": job_extracted.get("notes", []),
+        filtered_job_requirements = {
+            "title": job_requirements.get("title") or job_requirements.get("role_title"),
+            "must_have_tech": job_requirements.get("must_have_tech", []),
+            "nice_to_have_tech": job_requirements.get("nice_to_have_tech", []),
+            "years_experience": job_requirements.get("years_experience"),
+            "responsibilities": job_requirements.get("responsibilities", []),
+            "notes": job_requirements.get("notes", []),
         }
 
-        match_small = {
+        filtered_match_result = {
             "score": match_result.get("score") if isinstance(match_result, dict) else None,
             "matched_keywords": match_result.get("matched_keywords", []) if isinstance(match_result, dict) else [],
             "missing_keywords": match_result.get("missing_keywords", []) if isinstance(match_result, dict) else [],
@@ -72,21 +72,21 @@ class RewriteResumeService:
             "gaps": match_result.get("gaps", []) if isinstance(match_result, dict) else [],
         }
 
-        resume_payload = resume_text[:MAX_RESUME_LENGTH]
-        prompt = self._build_prompt(job_small, match_small, resume_payload)
-        raw = await self._llm.generate_text(prompt)
+        truncated_resume_text = resume_text[:MAX_RESUME_LENGTH]
+        prompt = self._build_rewrite_prompt(filtered_job_requirements, filtered_match_result, truncated_resume_text)
+        llm_response = await self._llm.generate_text(prompt)
 
         try:
-            data = robust_json_loads(raw)
+            parsed_rewrite_result = robust_json_loads(llm_response)
         except json.JSONDecodeError as e:
             raise ValueError(
                 f"Gemini returned invalid JSON. Could not rewrite resume. Error: {e}"
             ) from e
 
-        if not isinstance(data, dict):
+        if not isinstance(parsed_rewrite_result, dict):
             raise ValueError("Gemini returned JSON but not an object for rewrite_resume")
 
-        return self._normalize(data)
+        return self._normalize_rewrite_result(parsed_rewrite_result)
 
     @staticmethod
     def _compact_text(s: str) -> str:
@@ -96,10 +96,10 @@ class RewriteResumeService:
         return s
 
     @staticmethod
-    def _build_prompt(
-        job_small: dict[str, Any],
-        match_small: dict[str, Any],
-        resume_payload: str,
+    def _build_rewrite_prompt(
+        filtered_job_requirements: dict[str, Any],
+        filtered_match_result: dict[str, Any],
+        truncated_resume_text: str,
     ) -> str:
         return f"""
 Return ONLY valid JSON (no markdown, no ```).
@@ -118,14 +118,14 @@ STRICT RULES:
 
 Use match_result to emphasize strengths and reduce gaps via phrasing (not by inventing).
 
-job_extracted (filtered):
-{json.dumps(job_small, ensure_ascii=False)}
+job_requirements (filtered):
+{json.dumps(filtered_job_requirements, ensure_ascii=False)}
 
 match_result (filtered):
-{json.dumps(match_small, ensure_ascii=False)}
+{json.dumps(filtered_match_result, ensure_ascii=False)}
 
 resume_text:
-\"\"\"{resume_payload}\"\"\"
+\"\"\"{truncated_resume_text}\"\"\"
 
 Output JSON schema:
 {{
@@ -150,36 +150,36 @@ Rules for output:
 """.strip()
 
     @staticmethod
-    def _normalize(data: dict[str, Any]) -> dict[str, Any]:
-        sections = data.get("sections") if isinstance(data, dict) else None
+    def _normalize_rewrite_result(parsed_rewrite_result: dict[str, Any]) -> dict[str, Any]:
+        sections = parsed_rewrite_result.get("sections") if isinstance(parsed_rewrite_result, dict) else None
         if not isinstance(sections, dict):
             sections = {}
 
-        def sec(name: str) -> str:
+        def get_section(name: str) -> str:
             v = sections.get(name, "")
             return v if isinstance(v, str) else ""
 
         normalized_sections = {
-            "Summary": sec("Summary"),
-            "Skills": sec("Skills"),
-            "Experience": sec("Experience"),
-            "Projects": sec("Projects"),
-            "Education": sec("Education"),
+            "Summary": get_section("Summary"),
+            "Skills": get_section("Skills"),
+            "Experience": get_section("Experience"),
+            "Projects": get_section("Projects"),
+            "Education": get_section("Education"),
         }
 
-        rewritten_resume = data.get("rewritten_resume", "")
+        rewritten_resume = parsed_rewrite_result.get("rewritten_resume", "")
         if not isinstance(rewritten_resume, str) or not rewritten_resume.strip():
-            parts = []
+            resume_sections = []
             for key in ["Summary", "Skills", "Experience", "Projects", "Education"]:
                 txt = normalized_sections[key].strip()
                 if txt:
-                    parts.append(f"{key}\n{txt}".strip())
-            rewritten_resume = "\n\n".join(parts).strip()
+                    resume_sections.append(f"{key}\n{txt}".strip())
+            rewritten_resume = "\n\n".join(resume_sections).strip()
 
         logger.info("Resume rewrite completed successfully")
         return {
             "sections": normalized_sections,
             "rewritten_resume": rewritten_resume,
-            "changes": as_list(data.get("changes")),
-            "warnings": as_list(data.get("warnings")),
+            "changes": as_list(parsed_rewrite_result.get("changes")),
+            "warnings": as_list(parsed_rewrite_result.get("warnings")),
         }
