@@ -75,7 +75,9 @@ async def fetch_job_page(url: str) -> tuple[str | None, str]:
         httpx.HTTPStatusError: For HTTP errors other than 403.
     """
     async with httpx.AsyncClient(
-        verify=False, follow_redirects=True, timeout=20
+        verify=True,
+        follow_redirects=True,
+        timeout=httpx.Timeout(connect=5.0, read=20.0, write=20.0, pool=20.0)
     ) as client:
         response = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
         if response.status_code == 403:
