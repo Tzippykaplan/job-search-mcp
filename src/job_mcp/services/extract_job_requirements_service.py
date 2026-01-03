@@ -8,6 +8,7 @@ from job_mcp.adapters.job_page_fetcher import fetch_job_page, extract_requiremen
 from job_mcp.config import MAX_JOB_TEXT_LENGTH
 from job_mcp.utils.gemini_helpers import robust_json_loads
 from job_mcp.adapters.gemini_client import GeminiLLMClient
+from job_mcp.exceptions import ValidationError, LLMResponseError
 
 JobPageFetcher = Callable[[str], Awaitable[tuple[str | None, str]]]
 
@@ -27,7 +28,7 @@ class JobRequirementsExtractionService:
         job_text: str | None = None,
     ) -> dict[str, Any]:
         if not job_url and not job_text:
-            raise ValueError("Provide either job_url or job_text")
+            raise ValidationError("Provide either job_url or job_text")
 
         title_hint: str | None = None
         job_posting_text: str | None = job_text
@@ -56,8 +57,7 @@ class JobRequirementsExtractionService:
         try:
             parsed_requirements = robust_json_loads(llm_response)
         except json.JSONDecodeError as e:
-            # keep the error explicit to the caller
-            raise ValueError(
+            raise LLMResponseError(
                 f"Gemini returned invalid JSON. Could not extract job requirements. Error: {e}"
             ) from e
 

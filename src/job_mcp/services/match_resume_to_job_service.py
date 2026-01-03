@@ -7,6 +7,7 @@ from typing import Any, Callable
 from job_mcp.adapters.gemini_client import GeminiLLMClient
 from job_mcp.utils.gemini_helpers import as_list
 from job_mcp.utils.read_resume import read_resume_any
+from job_mcp.exceptions import ValidationError, LLMResponseError, FileReadError
 
 logger = logging.getLogger(__name__)
 ReadResume = Callable[[str], str]
@@ -33,7 +34,7 @@ class MatchResumeService:
 
         resume_text = (resume_text or "").strip()
         if not resume_text:
-            raise ValueError("Provide either resume_text or resume_file_path")
+            raise ValidationError("Provide either resume_text or resume_file_path")
 
         logger.info("Matching resume to job...")
         prompt = self._build_matching_prompt(job_requirements, resume_text)
@@ -43,11 +44,10 @@ class MatchResumeService:
         try:
             parsed_match_result = json.loads(llm_response)
         except json.JSONDecodeError as e:
-            # keep error clear to caller
-            raise ValueError(f"Gemini returned invalid JSON for match_resume. Error: {e}") from e
+            raise LLMResponseError(f"Gemini returned invalid JSON for match_resume. Error: {e}") from e
 
         if not isinstance(parsed_match_result, dict):
-            raise ValueError("Gemini returned JSON but not an object for match_resume")
+            raise LLMResponseError("Gemini returned JSON but not an object for match_resume")
 
         return self._normalize_match_result(parsed_match_result)
 

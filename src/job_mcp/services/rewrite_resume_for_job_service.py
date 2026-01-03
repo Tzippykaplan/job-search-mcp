@@ -9,6 +9,7 @@ from job_mcp.config import MAX_RESUME_LENGTH
 from job_mcp.adapters.gemini_client import GeminiLLMClient
 from job_mcp.utils.gemini_helpers import as_list, robust_json_loads
 from job_mcp.utils.read_resume import read_resume_any
+from job_mcp.exceptions import ValidationError, LLMResponseError, FileReadError
 
 logger = logging.getLogger(__name__)
 ReadResume = Callable[[str], str]
@@ -36,7 +37,7 @@ class RewriteResumeService:
 
         resume_text = (resume_text or "").strip()
         if not resume_text:
-            raise ValueError("Provide either resume_text or resume_file_path")
+            raise ValidationError("Provide either resume_text or resume_file_path")
 
         extracted = (job_requirements or {}).get("extracted", job_requirements)
         return await self._rewrite_resume_with_llm(extracted, match_result, resume_text)
@@ -49,7 +50,7 @@ class RewriteResumeService:
     ) -> dict[str, Any]:
         resume_text = self._compact_text(resume_text)
         if not resume_text:
-            raise ValueError("resume_text is required and cannot be empty")
+            raise ValidationError("resume_text is required and cannot be empty")
 
         logger.info("Starting resume rewrite...")
 
@@ -79,12 +80,12 @@ class RewriteResumeService:
         try:
             parsed_rewrite_result = robust_json_loads(llm_response)
         except json.JSONDecodeError as e:
-            raise ValueError(
+            raise LLMResponseError(
                 f"Gemini returned invalid JSON. Could not rewrite resume. Error: {e}"
             ) from e
 
         if not isinstance(parsed_rewrite_result, dict):
-            raise ValueError("Gemini returned JSON but not an object for rewrite_resume")
+            raise LLMResponseError("Gemini returned JSON but not an object for rewrite_resume")
 
         return self._normalize_rewrite_result(parsed_rewrite_result)
 

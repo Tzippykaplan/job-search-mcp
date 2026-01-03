@@ -7,6 +7,7 @@ import truststore
 
 from job_mcp.config import SYSTEM_PROMPT
 from job_mcp.utils.validation import require_str, require_dict, require_one_of
+from job_mcp.exceptions import ValidationError
 
 truststore.inject_into_ssl()
 load_dotenv()
@@ -90,7 +91,7 @@ async def tool_export_resume_docx(
     file_name = require_str("file_name", file_name, allow_none=True)
 
     if not isinstance(add_timestamp, bool):
-        raise ValueError("add_timestamp must be a boolean")
+        raise ValidationError("add_timestamp must be a boolean")
 
     return await export_resume_docx_tool(rewritten_resume, output_dir, file_name, add_timestamp)
 

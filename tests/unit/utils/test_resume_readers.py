@@ -1,7 +1,8 @@
 import pytest
 from docx import Document
 
-from job_mcp.utils.read_resume import read_text_file, read_docx_file, read_resume_any   
+from job_mcp.utils.read_resume import read_text_file, read_docx_file, read_resume_any
+from job_mcp.exceptions import FileReadError   
 
 def test_read_text_file_reads_utf8(tmp_path):
     p = tmp_path / "resume.txt"
@@ -46,12 +47,12 @@ def test_read_resume_any_docx_routes_to_docx(tmp_path):
 
 def test_read_resume_any_missing_file_raises(tmp_path):
     p = tmp_path / "missing.txt"
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(FileReadError):
         read_resume_any(str(p))
 
 
 def test_read_resume_any_unsupported_extension_raises(tmp_path):
     p = tmp_path / "resume.pdf"
     p.write_text("nope", encoding="utf-8")
-    with pytest.raises(ValueError, match="Unsupported resume file type"):
+    with pytest.raises(FileReadError, match="Unsupported resume file type"):
         read_resume_any(str(p))

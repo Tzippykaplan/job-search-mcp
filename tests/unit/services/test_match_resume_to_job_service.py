@@ -4,6 +4,7 @@ import json
 import pytest
 
 from job_mcp.services.match_resume_to_job_service import MatchResumeService
+from job_mcp.exceptions import ValidationError, LLMResponseError
 
 
 class FakeGeminiLLMClient:
@@ -92,7 +93,7 @@ async def test_match_raises_on_empty_resume_text() -> None:
     llm = FakeGeminiLLMClient("{}",)
     svc = MatchResumeService(llm=llm)  # type: ignore[arg-type]
 
-    with pytest.raises(ValueError, match="Provide either resume_text or resume_file_path"):
+    with pytest.raises(ValidationError, match="Provide either resume_text or resume_file_path"):
         await svc.match_resume_to_job_requirements(job_requirements={"x": 1}, resume_text="   ")
 
     assert llm.calls == 0
@@ -103,7 +104,7 @@ async def test_match_raises_when_llm_returns_invalid_json() -> None:
     llm = FakeGeminiLLMClient("NOT JSON")
     svc = MatchResumeService(llm=llm)  # type: ignore[arg-type]
 
-    with pytest.raises(ValueError, match="Gemini returned invalid JSON for match_resume"):
+    with pytest.raises(LLMResponseError, match="Gemini returned invalid JSON for match_resume"):
         await svc.match_resume_to_job_requirements(job_requirements={"x": 1}, resume_text="ok")
 
     assert llm.calls == 1
@@ -136,7 +137,7 @@ async def test_match_raises_when_llm_returns_non_object_json() -> None:
     llm = FakeGeminiLLMClient('["not", "an", "object"]')
     svc = MatchResumeService(llm=llm)  # type: ignore[arg-type]
 
-    with pytest.raises(ValueError, match="not an object"):
+    with pytest.raises(LLMResponseError, match="not an object"):
         await svc.match_resume_to_job_requirements(job_requirements={"x": 1}, resume_text="ok")
 
     assert llm.calls == 1

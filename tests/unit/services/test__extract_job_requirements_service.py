@@ -1,6 +1,7 @@
 import pytest
 
 from job_mcp.services.extract_job_requirements_service import JobRequirementsExtractionService
+from job_mcp.exceptions import ValidationError
 
 
 class FakeLLM:
@@ -34,7 +35,7 @@ class FakeLLM:
 @pytest.mark.asyncio
 async def test_extract_raises_when_no_input():
     service = JobRequirementsExtractionService(llm=FakeLLM())  # type: ignore[arg-type]
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError):
         await service.extract_job_requirements()
 
 

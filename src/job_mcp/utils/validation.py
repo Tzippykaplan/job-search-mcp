@@ -1,20 +1,23 @@
+from job_mcp.exceptions import ValidationError
+
+
 def require_str(name: str, value: object, *, allow_none: bool = False) -> str | None:
     if value is None:
         if allow_none:
             return None
-        raise ValueError(f"{name} is required")
+        raise ValidationError(f"{name} is required")
     if not isinstance(value, str):
-        raise ValueError(f"{name} must be a string")
+        raise ValidationError(f"{name} must be a string")
     v = value.strip()
     if not v:
-        raise ValueError(f"{name} cannot be empty or whitespace")
+        raise ValidationError(f"{name} cannot be empty or whitespace")
     return v
 
 def require_dict(name: str, value: object, *, allow_empty: bool = True) -> dict:
     if not isinstance(value, dict):
-        raise ValueError(f"{name} must be a dictionary")
+        raise ValidationError(f"{name} must be a dictionary")
     if not allow_empty and not value:
-        raise ValueError(f"{name} cannot be empty")
+        raise ValidationError(f"{name} cannot be empty")
     return value
 
 def require_one_of(**kwargs: object) -> None:
@@ -25,4 +28,4 @@ def require_one_of(**kwargs: object) -> None:
                 return
         elif v:  # For non-strings, check truthiness
             return
-    raise ValueError("At least one input must be provided")
+    raise ValidationError("At least one input must be provided")

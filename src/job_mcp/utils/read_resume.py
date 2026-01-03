@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from job_mcp.exceptions import FileReadError
 
 
 def read_text_file(path: str) -> str:
@@ -32,7 +33,7 @@ def read_resume_any(path: str) -> str:
     """
     p = Path(path)
     if not p.exists():
-        raise FileNotFoundError(f"Resume file not found: {path}")
+        raise FileReadError(f"Resume file not found: {path}")
 
     ext = p.suffix.lower()
     if ext in [".txt", ".md"]:
@@ -40,5 +41,5 @@ def read_resume_any(path: str) -> str:
     if ext == ".docx":
         return read_docx_file(path)
 
-    raise ValueError(f"Unsupported resume file type: {ext}. Use .txt, .md, or .docx")
+    raise FileReadError(f"Unsupported resume file type: {ext}. Use .txt, .md, or .docx")
 

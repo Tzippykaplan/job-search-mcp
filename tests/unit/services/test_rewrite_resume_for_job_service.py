@@ -5,6 +5,7 @@ import json
 import pytest
 
 from job_mcp.services.rewrite_resume_for_job_service import RewriteResumeService
+from job_mcp.exceptions import ValidationError, LLMResponseError
 
 
 class FakeLLM:
@@ -27,7 +28,7 @@ def fake_reader(path: str) -> str:
 @pytest.mark.asyncio
 async def test_rewrite_raises_when_no_resume_text_and_no_file():
     svc = RewriteResumeService(llm=FakeLLM("{}"))  # type: ignore[arg-type]
-    with pytest.raises(ValueError, match="Provide either resume_text or resume_file_path"):
+    with pytest.raises(ValidationError, match="Provide either resume_text or resume_file_path"):
         await svc.rewrite_resume_for_job(job_requirements={}, match_result={}, resume_text=None, resume_file_path=None)
 
 
@@ -136,7 +137,7 @@ async def test_rewrite_invalid_json_from_llm_raises_clean_error():
     llm = FakeLLM("NOT JSON")
     svc = RewriteResumeService(llm=llm)  # type: ignore[arg-type]
 
-    with pytest.raises(ValueError, match="Gemini returned invalid JSON. Could not rewrite resume"):
+    with pytest.raises(LLMResponseError, match="Gemini returned invalid JSON. Could not rewrite resume"):
         await svc.rewrite_resume_for_job(job_requirements={}, match_result={}, resume_text="resume", resume_file_path=None)
 
 
@@ -145,7 +146,7 @@ async def test_rewrite_non_object_json_raises():
     llm = FakeLLM('["not", "object"]')
     svc = RewriteResumeService(llm=llm)  # type: ignore[arg-type]
 
-    with pytest.raises(ValueError, match="not an object"):
+    with pytest.raises(LLMResponseError, match="not an object"):
         await svc.rewrite_resume_for_job(job_requirements={}, match_result={}, resume_text="resume", resume_file_path=None)
 
 

@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 
 from docx import Document
+from job_mcp.exceptions import ValidationError
 
 
 def _safe_filename(name: str) -> str:
@@ -41,7 +42,7 @@ def export_resume_to_docx(
     """
     text = (resume_text or "").strip()
     if not text:
-        raise ValueError("resume_text cannot be empty")
+        raise ValidationError("resume_text cannot be empty")
 
     out_dir = Path(output_dir).expanduser()
     if not out_dir.is_absolute():

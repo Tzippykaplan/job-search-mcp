@@ -7,6 +7,7 @@ from docx import Document
 
 import job_mcp.utils.export_resume_docx as mod
 from job_mcp.utils.export_resume_docx import export_resume_to_docx, _safe_filename
+from job_mcp.exceptions import ValidationError
 
 
 def test_safe_filename_default_when_empty():
@@ -32,7 +33,7 @@ def test_safe_filename_truncates_to_120_chars():
 
 
 def test_export_resume_to_docx_raises_on_empty_text(tmp_path):
-    with pytest.raises(ValueError, match="resume_text cannot be empty"):
+    with pytest.raises(ValidationError, match="resume_text cannot be empty"):
         export_resume_to_docx("", output_dir=str(tmp_path))
 
 
