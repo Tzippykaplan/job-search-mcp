@@ -127,6 +127,7 @@ extract_job_requirements → match_resume_to_job → rewrite_resume_for_job → 
 
 ```
 src/job_mcp/
+├── exceptions.py 
 ├── server.py              # MCP server entry point
 ├── config.py              # Configuration (model, limits, paths)
 ├── tools/                 # MCP tool wrappers
