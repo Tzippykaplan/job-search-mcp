@@ -32,8 +32,9 @@ def setup_logging(level: str = "INFO", log_to_file: bool = True) -> logging.Logg
         datefmt='%Y-%m-%d %H:%M:%S'
     )
     
-    # Console handler - INFO and above for clean real-time output
-    console_handler = logging.StreamHandler(sys.stdout)
+    # Console handler - INFO and above for clean real-time output.
+    # Use stderr to avoid corrupting MCP stdio protocol on stdout.
+    console_handler = logging.StreamHandler(sys.stderr)
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(formatter)
     root_logger.addHandler(console_handler)
