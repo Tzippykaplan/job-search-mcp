@@ -71,7 +71,6 @@ LOG_LEVEL=INFO  # Optional: DEBUG, INFO, WARNING, ERROR
 **Logging:**
 - Console: INFO and above (real-time output)
 - File: `logs/mcp-server.log` (DEBUG and above, 10MB rotation)
-- See [LOGGING.md](LOGGING.md) for details
 ---
 
 ## Agent Integration
