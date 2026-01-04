@@ -1,10 +1,12 @@
 # Job Search MCP Server
 
-An intelligent **Model Context Protocol (MCP)** server that automates job application preparation using Google's Gemini AI. Extract job requirements, analyze resume fit, and generate optimized, ATS-friendly resumes—all through a seamless agent-driven workflow.
+A **Model Context Protocol (MCP)** server that enables AI agents to autonomously tailor resumes for job applications. Using Google's Gemini AI, it extracts job requirements, scores candidate fit, and rewrites resumes to match—while enforcing truthfulness constraints that prevent fabricated experience.
 
 ## Overview
 
-This MCP server bridges job postings and resumes, helping job seekers tailor their applications efficiently. Designed for use with MCP-compatible AI agents (Claude Desktop, Codex CLI), it automates the tedious process of analyzing job requirements and reshaping resumes to match—without inventing experience or skills.
+Built for **MCP-compatible agents** (Claude Desktop, Codex CLI) to orchestrate multi-step job application workflows. Agents receive a job URL, fetch requirements, request the user's resume, analyze gaps, and generate ATS-optimized DOCX output—all without manual tool chaining.
+
+**This project demonstrates production-grade MCP server design:** layered architecture (tools → services → adapters), comprehensive logging and observability, custom exception handling, dependency injection for testability, and prompt engineering that enforces ethical AI constraints.
 
 ### Core Capabilities
 
@@ -15,7 +17,8 @@ This MCP server bridges job postings and resumes, helping job seekers tailor the
 
 ### How It Works
 
-Designed for **autonomous agent workflows**. Simply provide a job posting URL or paste the description—the agent proactively orchestrates the tools, requests your resume when needed, and produces a tailored output. No manual step-by-step configuration required.
+ Designed for **autonomous agent workflows** using four MCP tools that agents can orchestrate automatically. Simply provide a job posting URL or paste the description—the agent proactively calls the appropriate tools, requests your resume when needed, and produces a tailored output. No manual step-by-step configuration required.
+
 ---
 
 ## Quick Start
@@ -28,13 +31,33 @@ Designed for **autonomous agent workflows**. Simply provide a job posting URL or
 ### Installation
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Tzippykaplan/job-search-mcp/
 cd job-search-mcp
+
+# Create virtual environment (recommended)
+python -m venv .venv
+
+# Activate virtual environment
+# Windows:
+.venv\Scripts\activate
+# Mac/Linux:
+source .venv/bin/activate
+
+# Install package
 pip install -e .
 
-# For development
+# For development (includes pytest, black, ruff)
 pip install -e ".[dev]"
 ```
+
+**Dependencies:**
+- `beautifulsoup4` - HTML parsing for job pages
+- `google-genai` - Google Gemini AI SDK
+- `httpx` - Async HTTP client with SSL support
+- `mcp[cli]` - Model Context Protocol framework
+- `python-docx` - DOCX file generation
+- `python-dotenv` - Environment variable management
+- `truststore` - System SSL certificate integration
 
 ### Configuration
 
@@ -42,7 +65,13 @@ Create a `.env` file:
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
+LOG_LEVEL=INFO  # Optional: DEBUG, INFO, WARNING, ERROR
 ```
+
+**Logging:**
+- Console: INFO and above (real-time output)
+- File: `logs/mcp-server.log` (DEBUG and above, 10MB rotation)
+- See [LOGGING.md](LOGGING.md) for details
 ---
 
 ## Agent Integration
@@ -51,13 +80,16 @@ GEMINI_API_KEY=your_gemini_api_key_here
 
 Add to your Claude Desktop MCP config file:
 
+**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`  
+**Mac:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+
 ```json
 {
   "mcpServers": {
     "job-search-mcp": {
-      "command": "/path/to/job-search-mcp/.venv/Scripts/python.exe",
-      "args": ["-u", "/path/to/job-search-mcp/src/job_mcp/server.py"],
-      "cwd": "/path/to/job-search-mcp",
+      "command": "C:/Users/YourName/path/job-search-mcp/.venv/Scripts/python.exe",
+      "args": ["-u", "C:/Users/YourName/path/job-search-mcp/src/job_mcp/server.py"],
+      "cwd": "C:/Users/YourName/path/to/job-search-mcp",
       "env": {
         "GEMINI_API_KEY": "YOUR_API_KEY_HERE"
       }
@@ -66,7 +98,12 @@ Add to your Claude Desktop MCP config file:
 }
 ```
 
-**Note:** Use absolute paths. The server starts automatically when Claude Desktop launches.
+**Important Notes:**
+- Use **forward slashes (/)** even on Windows
+- Use **absolute paths** to your virtual environment Python and server.py
+- Replace `YourName` with your actual username
+- The server starts automatically when Claude Desktop launches
+- Restart Claude Desktop after making changes
 
 ### OpenAI Codex CLI
 
@@ -84,8 +121,7 @@ Once connected to an agent, simply provide natural language instructions:
 
 ```text
 I want to apply for this job:
-https://example.com/software-engineer-role
-
+https://www.drushim.co.il/job/35728781/2a767a51/
 Analyze the requirements, evaluate my resume, and optimize it for this position.
 ```
 
@@ -127,34 +163,42 @@ extract_job_requirements → match_resume_to_job → rewrite_resume_for_job → 
 
 ```
 src/job_mcp/
-├── exceptions.py 
 ├── server.py              # MCP server entry point
 ├── config.py              # Configuration (model, limits, paths)
+├── exceptions.py          # Custom exception hierarchy
 ├── tools/                 # MCP tool wrappers
 │   ├── extract_job_requirements_tool.py
 │   ├── match_resume_to_job_tool.py
 │   ├── rewrite_resume_for_job_tool.py
 │   └── export_resume_docx_tool.py
 ├── services/              # Business logic layer
-│   ├── job_requirements_service.py
-│   ├── match_resume_service.py
-│   ├── rewrite_resume_service.py
+│   ├── extract_job_requirements_service.py
+│   ├── match_resume_to_job_service.py
+│   ├── rewrite_resume_for_job_service.py
 │   └── export_resume_docx_service.py
 ├── adapters/              # External integrations
-│   ├── job_fetcher_httpx.py    # Job page scraping
-│   └── llm_gemini_client.py    # Gemini AI client
-└── utils/                 # Shared utilities
-    ├── gemini_helpers.py  # JSON parsing, fence stripping
-    ├── read_resume.py     # Resume file readers (.txt, .md, .docx)
-    └── export_resume_docx.py  # DOCX generation
+│   ├── gemini_client.py        # Gemini AI client
+│   └── job_page_fetcher.py     # Job page scraping (httpx + BeautifulSoup)
+├── utils/                 # Shared utilities
+│   ├── gemini_helpers.py       # JSON parsing, fence stripping
+│   ├── read_resume.py          # Resume file readers (.txt, .md, .docx)
+│   ├── export_resume_docx.py   # DOCX generation
+│   ├── validation.py           # Input validation helpers
+│   └── logger.py               # Logging configuration
+└── prompts/               # AI prompt templates
+    └── system_prompt.txt
 ```
 
 ### Design Principles
 
-- **Clean separation**: Tools → Services → Adapters → Utils
-- **Testable**: Each layer is independently testable with mock objects
+- **Layered Architecture**: Tools → Services → Adapters → Utils
+- **Dependency Injection**: Services accept mock adapters for testing
+- **Custom Exceptions**: Proper error categorization (ValidationError, LLMResponseError, FileReadError)
+- **Comprehensive Logging**: Structured logs for debugging and monitoring
+- **Input Validation**: All tool parameters validated before processing
 - **Truthful AI**: Prompts explicitly forbid inventing experience or skills
 - **ATS-friendly**: DOCX output optimized for applicant tracking systems
+- **Type Safety**: Full type hints with Python 3.12+ syntax
 
 ---
 
@@ -196,23 +240,44 @@ pyright src/              # Type checking
 
 ## Cost Estimation
 
-Using **Gemini 2.5 Flash** (as of 2026):
-
-- Job extraction: ~1,000 tokens (~$0.01)
-- Resume matching: ~2,000 tokens (~$0.02)  
-- Resume rewriting: ~4,000 tokens (~$0.04)
-
-**Total per application: ~$0.07**
-
-Prices vary by region and usage tier. Monitor usage in [Google AI Studio](https://ai.google.dev/).
+Using **Gemini 2.5 Flash** (as of 2026): **~$0.07 per application** (extraction + matching + rewriting). Prices vary by region. Monitor usage in [Google AI Studio](https://ai.google.dev/).
 
 ---
 
 ## Limitations
 
-- **Scraping**: Some job sites block automated requests (403 errors). Use `job_text` parameter as fallback.
-- **Truthfulness**: The AI only reshapes existing content—it cannot invent new skills or experience.
-- **Resume Quality**: Best results require well-formatted input resumes with clear sections.
+- **Scraping**: Some job sites block automated requests (403). Use `job_text` as fallback.
+- **Truthfulness**: AI only reshapes existing content—cannot invent skills or experience.
+- **Quality**: Best results require well-formatted input resumes with clear sections.
+
+---
+
+## Troubleshooting
+
+### "Missing GEMINI_API_KEY" Error
+- Ensure `.env` file exists in project root with your API key
+- For Claude Desktop, add API key to the `env` section in config JSON
+
+### Server Not Appearing in Claude Desktop
+- Verify paths use forward slashes (`/`) even on Windows
+- Check paths are absolute, not relative
+- Restart Claude Desktop after config changes
+- Check Claude Desktop logs for error messages
+
+### Tests Failing
+```bash
+# Clear Python cache and retry
+python -m pytest --cache-clear -v
+
+# Or manually clean cache:
+# Mac/Linux: find . -type d -name __pycache__ -exec rm -r {} +
+# Windows: Get-ChildItem -Recurse __pycache__ | Remove-Item -Recurse -Force
+```
+
+### Import Errors
+- Ensure you installed with `pip install -e .` from project root
+- Verify virtual environment is activated
+- Check that all `__init__.py` files exist in package directories
 
 ---
 
