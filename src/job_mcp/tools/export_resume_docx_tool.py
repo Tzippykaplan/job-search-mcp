@@ -11,21 +11,19 @@ async def export_resume_docx_tool(
     file_name: str | None = None,
     add_timestamp: bool = True,
 ) -> dict[str, Any]:
-    """
-    Tool 4:
-    Save rewritten resume as DOCX in a local folder.
+    """Export a resume text to a local DOCX file.
 
     Inputs:
-      - rewritten_resume: string (the final resume text)
-      - output_dir: folder name/path
-      - file_name: base file name (no extension needed)
-      - add_timestamp: add timestamp suffix to avoid overwriting
+    - rewritten_resume: final resume text (typically `rewrite_resume_for_job_tool()["rewritten_resume"]`)
+    - output_dir: folder name/path
+    - file_name: base file name (no extension needed)
+    - add_timestamp: append timestamp to reduce overwrite risk
 
-    Output:
-      - { "saved_path": "...", "file_name": "...", "output_dir": "..." }
+    Returns:
+    - {"saved_path": str, "output_dir": str, "add_timestamp": bool}
     """
-    service = ExportResumeDocxService()
-    return await service.export(
+    export_resume_docx_service = ExportResumeDocxService()
+    return await export_resume_docx_service.export(
         resume_text=rewritten_resume,
         output_dir=output_dir,
         file_name=file_name,

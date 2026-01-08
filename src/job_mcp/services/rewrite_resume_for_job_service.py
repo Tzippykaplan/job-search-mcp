@@ -188,6 +188,7 @@ Rules for output:
 
         rewritten_resume = parsed_rewrite_result.get("rewritten_resume", "")
         if not isinstance(rewritten_resume, str) or not rewritten_resume.strip():
+            # If the LLM omitted the combined field, derive it deterministically from sections.
             resume_sections = []
             for key in ["Summary", "Skills", "Experience", "Projects", "Education"]:
                 txt = normalized_sections[key].strip()

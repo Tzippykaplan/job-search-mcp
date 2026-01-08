@@ -18,6 +18,7 @@ def strip_fences(text: str) -> str:
     """
     t = (text or "").strip()
     if t.startswith("```"):
+        # Gemini frequently wraps JSON in markdown fences (```json ... ```).
         lines = t.splitlines()[1:]
         if lines and lines[-1].strip() == "```":
             lines = lines[:-1]
@@ -58,6 +59,7 @@ def robust_json_loads(raw: str) -> dict[str, Any]:
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
+        # Fallback: extract the outermost {...} block when the model wraps JSON with prose.
         start = raw.find("{")
         end = raw.rfind("}")
         if start != -1 and end != -1 and end > start:

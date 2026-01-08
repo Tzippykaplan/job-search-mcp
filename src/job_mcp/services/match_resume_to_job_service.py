@@ -113,6 +113,7 @@ Rules:
         score = parsed_match_result.get("score")
         if not isinstance(score, (int, float)):
             score = 0
+        # Clamp score to the expected contract even if the LLM drifts.
         parsed_match_result["score"] = max(0, min(100, int(score)))
 
         return parsed_match_result
