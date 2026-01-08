@@ -61,7 +61,7 @@ async def test_rewrite_reads_from_file_when_resume_file_path_provided():
 
     assert out["rewritten_resume"] == "FULL RESUME"
     assert llm.last_prompt is not None
-    assert "resume_text:" in llm.last_prompt
+    assert "ORIGINAL RESUME:" in llm.last_prompt
     assert "My Resume" in llm.last_prompt
 
 
@@ -123,9 +123,9 @@ async def test_rewrite_builds_prompt_with_filtered_payloads_and_calls_llm_once()
     assert out["rewritten_resume"] == "FINAL"
     assert len(llm.calls) == 1
     assert llm.last_prompt is not None
-    assert "job_requirements (filtered):" in llm.last_prompt
-    assert "match_result (filtered):" in llm.last_prompt
-    assert "resume_text:" in llm.last_prompt
+    assert "JOB REQUIREMENTS (FILTERED):" in llm.last_prompt
+    assert "MATCH ANALYSIS (FILTERED):" in llm.last_prompt
+    assert "ORIGINAL RESUME:" in llm.last_prompt
 
     # Ensure filtering happened (the SECRET key should not be in prompt)
     assert "should_not_leak" not in llm.last_prompt

@@ -77,8 +77,8 @@ async def test_match_builds_prompt_includes_job_and_resume_snippet() -> None:
 
     # Basic prompt invariants
     assert "Return ONLY valid JSON" in prompt
-    assert "job_requirements:" in prompt
-    assert "resume_text:" in prompt
+    assert "JOB REQUIREMENTS:" in prompt
+    assert "CANDIDATE RESUME:" in prompt
 
     # Ensure job_extracted JSON got embedded
     assert '"Backend Engineer"' in prompt or "Backend Engineer" in prompt

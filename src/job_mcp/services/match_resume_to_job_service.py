@@ -73,18 +73,34 @@ class MatchResumeService:
         job_requirements_json = json.dumps(job_requirements, ensure_ascii=False)
         truncated_resume_text = (resume_text or "")[:14000]
 
-        return f"""Return ONLY valid JSON. No markdown. No code fences. No extra text.
+        return f"""You are an ATS (Applicant Tracking System) resume matcher. Your task is to objectively match a candidate's resume against job requirements.
 
-Match resume against job requirements. Be strict.
-Do NOT invent experience. Use ONLY what appears in resume.
+OUTPUT FORMAT:
+- Return ONLY valid JSON
+- No markdown, no code fences (no ```), no explanatory text
+- Raw JSON object only
 
-job_requirements:
+MATCHING PRINCIPLES:
+1. Be STRICT and OBJECTIVE - only count skills/experience explicitly present in the resume
+2. Do NOT infer, assume, or extrapolate experience not stated
+3. Do NOT give credit for similar or related skills unless they match the requirement
+4. Evaluate based on concrete evidence in the resume
+
+SCORING CRITERIA (0-100):
+- 90-100: Exceptional fit - meets all must-have requirements plus most nice-to-haves
+- 75-89: Strong fit - meets all must-have requirements and some nice-to-haves
+- 60-74: Good fit - meets most must-have requirements
+- 40-59: Moderate fit - meets some must-have requirements, has gaps
+- 20-39: Weak fit - meets few requirements, significant gaps
+- 0-19: Poor fit - missing most critical requirements
+
+JOB REQUIREMENTS:
 {job_requirements_json}
 
-resume_text:
+CANDIDATE RESUME:
 {truncated_resume_text}
 
-Output JSON schema (ALL keys required):
+OUTPUT SCHEMA (ALL fields required):
 {{
   "score": number,
   "matched_keywords": string[],
@@ -93,10 +109,26 @@ Output JSON schema (ALL keys required):
   "gaps": string[]
 }}
 
-Rules:
-- score must be between 0 and 100.
-- Use [] when nothing found.
-""".strip()
+FIELD DEFINITIONS:
+- score: Integer 0-100 based on criteria above
+- matched_keywords: Technical skills/technologies from job requirements found in resume (e.g., ["React", "Python", "AWS"])
+- missing_keywords: Technical skills/technologies from job requirements NOT found in resume (e.g., ["Kubernetes", "GraphQL"])
+- strengths: Specific positive points where candidate exceeds or meets requirements (e.g., ["8 years React experience (exceeds 5yr requirement)", "Led team of 6 engineers"])
+- gaps: Specific weaknesses or missing requirements (e.g., ["No GraphQL experience mentioned", "Limited cloud infrastructure background"])
+
+MATCHING EXAMPLES:
+- Job requires "React" + Resume mentions "React" → matched_keywords: ["React"]
+- Job requires "5+ years experience" + Resume shows "7 years" → strengths: ["7 years experience (exceeds 5yr requirement)"]
+- Job requires "Kubernetes" + Resume has no mention → missing_keywords: ["Kubernetes"], gaps: ["No Kubernetes experience"]
+- Job requires "leadership" + Resume shows "Led team of 10" → strengths: ["Leadership: Led team of 10"]
+
+IMPORTANT:
+- Only match exact or clearly equivalent technologies (e.g., "JS" = "JavaScript", "k8s" = "Kubernetes")
+- Do NOT match similar but different technologies (e.g., "Vue" ≠ "React", "PostgreSQL" ≠ "MySQL")
+- Use empty arrays [] when no items found
+- Be honest about gaps - this helps candidates improve
+
+Return ONLY the JSON object.""".strip()
 
     def _normalize_match_result(self, parsed_match_result: dict[str, Any]) -> dict[str, Any]:
         parsed_match_result.setdefault("matched_keywords", [])

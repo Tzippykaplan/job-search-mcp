@@ -120,33 +120,48 @@ class RewriteResumeService:
         filtered_match_result: dict[str, Any],
         truncated_resume_text: str,
     ) -> str:
-        return f"""
-Return ONLY valid JSON (no markdown, no ```).
+        return f"""You are an expert ATS (Applicant Tracking System) resume optimizer. Your task is to rewrite a resume to better align with specific job requirements while maintaining complete truthfulness.
 
-You are an ATS resume editor.
+OUTPUT FORMAT:
+- Return ONLY valid JSON
+- No markdown, no code fences (no ```), no explanatory text
+- Raw JSON object only
 
-Goal:
-Rewrite the resume to better match the job. Keep it truthful.
+CORE OBJECTIVE:
+Optimize the resume to maximize ATS score and recruiter appeal for the target role while staying 100% truthful to the candidate's actual experience.
 
-STRICT RULES:
-- Do NOT add experience that is not explicitly present in resume_text.
-- Do NOT add new technologies that do not appear in resume_text.
-- Do NOT remove truthful information; if less relevant, keep it but move it lower or compress it.
-- You MAY rephrase, reorder, and emphasize what already exists.
-- Keep it concise and readable (~1 page style), bullet points, clear sections.
+STRICT TRUTHFULNESS RULES (CRITICAL):
+1. NEVER add skills, technologies, or experience not explicitly present in the original resume
+2. NEVER fabricate projects, roles, achievements, or certifications
+3. NEVER inflate years of experience or job titles
+4. NEVER claim expertise in technologies only briefly mentioned
+5. DO NOT remove any truthful information - if less relevant, keep but deprioritize or condense
 
-Use match_result to emphasize strengths and reduce gaps via phrasing (not by inventing).
+ALLOWED OPTIMIZATIONS:
+1. Reorder sections and bullet points to emphasize relevant experience first
+2. Rephrase descriptions to highlight relevant skills and use job-specific keywords
+3. Quantify achievements where specific numbers exist (e.g., "increased performance by 40%")
+4. Expand on relevant projects/roles and condense less relevant ones
+5. Align terminology with job posting (e.g., "frontend" → "front-end" if job uses that)
+6. Strengthen weak phrasing (e.g., "helped with" → "contributed to", "worked on" → "developed")
 
-job_requirements (filtered):
+FORMATTING GUIDELINES:
+- Target length: ~1 page equivalent (~500-700 words)
+- Use bullet points for readability
+- Keep sections clearly separated with headers
+- Use action verbs (developed, led, implemented, designed, optimized)
+- Be concise but specific
+
+JOB REQUIREMENTS (FILTERED):
 {json.dumps(filtered_job_requirements, ensure_ascii=False)}
 
-match_result (filtered):
+MATCH ANALYSIS (FILTERED):
 {json.dumps(filtered_match_result, ensure_ascii=False)}
 
-resume_text:
+ORIGINAL RESUME:
 \"\"\"{truncated_resume_text}\"\"\"
 
-Output JSON schema:
+OUTPUT JSON SCHEMA (ALL fields required):
 {{
   "sections": {{
     "Summary": string,
@@ -160,13 +175,63 @@ Output JSON schema:
   "warnings": string[]
 }}
 
-Rules for output:
-- Fill sections ONLY if relevant info exists; otherwise use "".
-- "rewritten_resume" MUST be the full final resume text composed from the sections, in this order:
-  Summary, Skills, Experience, Projects, Education
-- changes: short bullets explaining improvements (e.g., "Moved Angular/RxJS to top skills")
-- warnings: important gaps that cannot be fixed without new experience
-""".strip()
+FIELD DEFINITIONS:
+
+1. sections (object): Individual resume sections as strings
+   - Summary: 2-3 sentence professional summary highlighting relevant experience and strengths
+   - Skills: Organized technical skills (languages, frameworks, tools, etc.) - prioritize matched keywords
+   - Experience: Work history with bullet points emphasizing relevant achievements
+   - Projects: Notable projects showcasing relevant skills (if applicable)
+   - Education: Degrees, certifications, relevant coursework
+   - Use "" (empty string) for sections where no relevant information exists
+
+2. rewritten_resume: Complete final resume text assembled in this exact order:
+   Summary → Skills → Experience → Projects → Education
+   Must be properly formatted with section headers and spacing
+
+3. changes (array): Short bullet points explaining key improvements made
+   Examples:
+   - "Moved React and TypeScript to top of Skills section to match must-have requirements"
+   - "Expanded description of microservices project to highlight Kubernetes experience"
+   - "Rephrased team collaboration points to emphasize leadership experience"
+   - "Reordered work experience to prioritize relevant backend development role"
+
+4. warnings (array): Critical gaps that cannot be ethically addressed
+   Examples:
+   - "No Kubernetes experience - this is a must-have requirement"
+   - "Limited leadership experience - job requires managing teams"
+   - "Missing cloud certifications preferred by employer"
+
+SECTION-SPECIFIC GUIDANCE:
+
+Summary:
+- Lead with job title match (e.g., "Senior Full Stack Engineer with 8+ years experience")
+- Mention 2-3 most relevant strengths from matched_keywords
+- Keep to 2-3 sentences maximum
+
+Skills:
+- Prioritize matched_keywords at the top
+- Group logically (e.g., "Languages: Python, JavaScript" / "Frameworks: React, Django")
+- Only list skills present in original resume
+
+Experience:
+- Lead each role with: Job Title | Company | Dates
+- For relevant roles: expand bullet points, emphasize matched skills
+- For less relevant roles: condense but don't remove
+- Use metrics where available (e.g., "Reduced load time by 40%")
+- Start bullets with strong action verbs
+
+Projects:
+- Highlight projects that demonstrate missing or weak skills
+- Include: project name, technologies used, your role, impact
+- Only if meaningful projects exist in original resume
+
+Education:
+- Standard format: Degree | Institution | Year
+- Include relevant coursework if it matches job requirements
+- List certifications if present
+
+Remember: Optimize for ATS and recruiter appeal, but NEVER compromise truthfulness. Return ONLY the JSON object.""".strip()
 
     @staticmethod
     def _normalize_rewrite_result(parsed_rewrite_result: dict[str, Any]) -> dict[str, Any]:

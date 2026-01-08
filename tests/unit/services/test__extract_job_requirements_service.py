@@ -60,7 +60,8 @@ async def test_extract_with_job_url_uses_fetcher_and_passes_title_hint():
     # Ensure LLM was called once and title_hint made it into the prompt
     assert len(llm.calls) == 1
     assert llm.last_prompt is not None
-    assert "title_hint: Title From HTML" in llm.last_prompt
+    assert "TITLE HINT:" in llm.last_prompt
+    assert 'Use "Title From HTML" as the title' in llm.last_prompt
 
 
 @pytest.mark.asyncio
