@@ -1,23 +1,41 @@
 # Job Search MCP Server
 
-A **Model Context Protocol (MCP)** server that enables AI agents to autonomously tailor resumes for job applications. Using Google's Gemini AI, it extracts job requirements, scores candidate fit, and rewrites resumes to match—while enforcing truthfulness constraints that prevent fabricated experience.
+A **Model Context Protocol (MCP)** server that enables AI agents to autonomously tailor resumes for job applications. Using Google's Gemini AI, it extracts job requirements, scores candidate fit, and rewrites resumes to match -- while enforcing truthfulness constraints that prevent fabricated experience.
 
 ## Overview
 
-Built for **MCP-compatible agents** (Claude Desktop, Codex CLI) to orchestrate multi-step job application workflows. Agents receive a job URL, fetch requirements, request the user's resume, analyze gaps, and generate ATS-optimized DOCX output—all without manual tool chaining.
+Built for **MCP-compatible agents** (Claude Desktop, Codex CLI) to orchestrate multi-step job application workflows. Agents receive a job URL, fetch requirements, request the user's resume, analyze gaps, and generate ATS-optimized DOCX output -- all without manual tool chaining.
 
-**This project demonstrates production-grade MCP server design:** layered architecture (tools → services → adapters), comprehensive logging and observability, custom exception handling, dependency injection for testability, and prompt engineering that enforces ethical AI constraints.
+**This project demonstrates production-grade MCP server design:** layered architecture (tools -> services -> adapters), comprehensive logging and observability, custom exception handling, dependency injection for testability, and prompt engineering that enforces ethical AI constraints.
 
 ### Core Capabilities
 
-- **Job Parsing** – Extract structured requirements from job URLs or text (tech stack, experience, soft skills)
-- **Resume Matching** – Score resume fit and identify strengths, gaps, and missing keywords
-- **Resume Optimization** – Rewrite resumes to emphasize relevant experience while staying truthful
-- **DOCX Export** – Generate professional Word documents ready for ATS systems
+- **Job Parsing** - Extract structured requirements from job URLs or text (tech stack, experience, soft skills)
+- **Resume Matching** - Score resume fit and identify strengths, gaps, and missing keywords
+- **Resume Optimization** - Rewrite resumes to emphasize relevant experience while staying truthful
+- **DOCX Export** - Generate professional Word documents ready for ATS systems
 
 ### How It Works
 
- Designed for **autonomous agent workflows** using four MCP tools that agents can orchestrate automatically. Simply provide a job posting URL or paste the description—the agent proactively calls the appropriate tools, requests your resume when needed, and produces a tailored output. No manual step-by-step configuration required.
+- Provide a job URL (or paste the job text)
+- Tool extracts structured requirements
+- Tool asks for your resume (text or file)
+- Tool scores fit and identifies gaps
+- Tool rewrites the resume (truthful, ATS-friendly)
+- Optional: agent exports a `.docx`
+
+### Example Usage
+
+Write to your agent (Claude Desktop, Codex CLI, etc): "I found this job (paste a URL). This is my resume. Can you rewrite it for me?"
+The agent will manage the tool chain and return an output.
+You can also call a single tool. For example: "What are my chances to get this job?"
+The agent will call `match_resume_to_job` and return the score and gaps.
+
+```text
+Job URL: https://www.example.com/job
+Here is my resume text (shortened): ...
+Please analyze the requirements, tailor my resume, and export a DOCX.
+```
 
 ---
 
@@ -26,7 +44,7 @@ Built for **MCP-compatible agents** (Claude Desktop, Codex CLI) to orchestrate m
 ### Prerequisites
 
 - **Python 3.12+**
-- **Google Gemini API key** – [Get one here](https://ai.google.dev/)
+- **Google Gemini API key** - [Get one here](https://ai.google.dev/)
 
 ### Installation
 
@@ -114,21 +132,18 @@ codex mcp add job-search-mcp -- \
 codex
 ```
 
-### Example Usage
+### Agent Workflow (5-6 steps)
 
-Once connected to an agent, simply provide natural language instructions:
+- Provide `job_url` (or paste `job_text` if scraping fails)
+- Agent calls `extract_job_requirements` -> gets structured requirements
+- Agent asks for your resume (`resume_text` or `resume_file_path`)
+- Agent calls `match_resume_to_job` -> gets score + gaps/keywords
+- Agent calls `rewrite_resume_for_job` -> produces a tailored, truthful rewrite
+- (Optional) Agent calls `export_resume_docx` -> returns `saved_path` for the generated `.docx`
 
-```text
-I want to apply for this job:
-https://www.drushim.co.il/job/35728781/2a767a51/
-Analyze the requirements, evaluate my resume, and optimize it for this position.
-```
+### Short Usage Example (No Long Outputs)
 
-The agent will:
-1. Extract job requirements
-2. Request your resume (if not provided)
-3. Analyze match score and gaps
-4. Rewrite and export an optimized DOCX
+- Keep the prompt short; avoid pasting long outputs back into chat.
 
 ---
 
@@ -139,7 +154,7 @@ The agent will:
 The four MCP tools work together in a sequential pipeline:
 
 ```
-extract_job_requirements → match_resume_to_job → rewrite_resume_for_job → export_resume_docx
+extract_job_requirements -> match_resume_to_job -> rewrite_resume_for_job -> export_resume_docx
 ```
 
 **1. Extract Job Requirements**
@@ -162,35 +177,35 @@ extract_job_requirements → match_resume_to_job → rewrite_resume_for_job → 
 
 ```
 src/job_mcp/
-├── server.py              # MCP server entry point
-├── config.py              # Configuration (model, limits, paths)
-├── exceptions.py          # Custom exception hierarchy
-├── tools/                 # MCP tool wrappers
-│   ├── extract_job_requirements_tool.py
-│   ├── match_resume_to_job_tool.py
-│   ├── rewrite_resume_for_job_tool.py
-│   └── export_resume_docx_tool.py
-├── services/              # Business logic layer
-│   ├── extract_job_requirements_service.py
-│   ├── match_resume_to_job_service.py
-│   ├── rewrite_resume_for_job_service.py
-│   └── export_resume_docx_service.py
-├── adapters/              # External integrations
-│   ├── gemini_client.py        # Gemini AI client
-│   └── job_page_fetcher.py     # Job page scraping (httpx + BeautifulSoup)
-├── utils/                 # Shared utilities
-│   ├── gemini_helpers.py       # JSON parsing, fence stripping
-│   ├── read_resume.py          # Resume file readers (.txt, .md, .docx)
-│   ├── export_resume_docx.py   # DOCX generation
-│   ├── validation.py           # Input validation helpers
-│   └── logger.py               # Logging configuration
-└── prompts/               # AI prompt templates
-    └── system_prompt.txt
+|_ server.py              # MCP server entry point
+|_ config.py              # Configuration (model, limits, paths)
+|_ exceptions.py          # Custom exception hierarchy
+|_ tools/                 # MCP tool wrappers
+|  |_ extract_job_requirements_tool.py
+|  |_ match_resume_to_job_tool.py
+|  |_ rewrite_resume_for_job_tool.py
+|  |_ export_resume_docx_tool.py
+|_ services/              # Business logic layer
+|  |_ extract_job_requirements_service.py
+|  |_ match_resume_to_job_service.py
+|  |_ rewrite_resume_for_job_service.py
+|  |_ export_resume_docx_service.py
+|_ adapters/              # External integrations
+|  |_ gemini_client.py        # Gemini AI client
+|  |_ job_page_fetcher.py     # Job page scraping (httpx + BeautifulSoup)
+|_ utils/                 # Shared utilities
+|  |_ gemini_helpers.py       # JSON parsing, fence stripping
+|  |_ read_resume.py          # Resume file readers (.txt, .md, .docx)
+|  |_ export_resume_docx.py   # DOCX generation
+|  |_ validation.py           # Input validation helpers
+|  |_ logger.py               # Logging configuration
+|_ prompts/               # AI prompt templates
+|  |_ system_prompt.txt
 ```
 
 ### Design Principles
 
-- **Layered Architecture**: Tools → Services → Adapters → Utils
+- **Layered Architecture**: Tools -> Services -> Adapters -> Utils
 - **Dependency Injection**: Services accept mock adapters for testing
 - **Custom Exceptions**: Proper error categorization (ValidationError, LLMResponseError, FileReadError)
 - **Comprehensive Logging**: Structured logs for debugging and monitoring
@@ -246,7 +261,7 @@ Using **Gemini 2.5 Flash** (as of 2026): **~$0.07 per application** (extraction 
 ## Limitations
 
 - **Scraping**: Some job sites block automated requests (403). Use `job_text` as fallback.
-- **Truthfulness**: AI only reshapes existing content—cannot invent skills or experience.
+- **Truthfulness**: AI only reshapes existing content -- cannot invent skills or experience.
 - **Quality**: Best results require well-formatted input resumes with clear sections.
 
 ---
@@ -291,6 +306,5 @@ Contributions welcome! Please:
 5. Submit a pull request
 
 ---
-
 
 **Made with ❤️ for anyone looking for their next job.**
