@@ -251,14 +251,31 @@ src/job_mcp/
 - `job_url` (optional): URL to job posting
 - `job_text` (optional): Raw job description text
 
-**Output**:
+**Output** (success):
 ```json
 {
-  "tech_stack": ["Python", "React", "PostgreSQL"],
-  "experience_level": "3-5 years",
-  "soft_skills": ["Communication", "Team leadership"],
-  "responsibilities": ["..."],
-  "requirements": ["..."]
+  "source": "job_url"|"job_text",
+  "job_url": "https://..."|null,
+  "extracted": {
+    "title": "Senior Python Engineer"|null,
+    "company": "TechCorp Inc."|null,
+    "location": "Remote"|null,
+    "years_experience": ["5+ years Python", "3+ years React"],
+    "must_have_tech": ["Python", "React", "PostgreSQL"],
+    "nice_to_have_tech": ["Docker", "Kubernetes"],
+    "soft_skills": ["Communication", "Team leadership"],
+    "notes": ["Remote with quarterly onsite meetings"]
+  }
+}
+```
+
+**Output** (scrape blocked):
+```json
+{
+  "source": "job_url",
+  "job_url": "https://...",
+  "error": "blocked_by_site",
+  "message": "Site blocked scraping (403) or empty page. Paste the job content into job_text instead."
 }
 ```
 
@@ -267,17 +284,24 @@ src/job_mcp/
 **Purpose**: Score resume fit and identify gaps
 
 **Input**:
-- Job requirements (from tool 1)
-- Resume text or file path
+- `job_requirements`: Output of `extract_job_requirements` (or just its "extracted" dict)
+- `resume_text` (optional): Resume content as plain text
+- `resume_file_path` (optional): Path to resume file (.txt, .md, .docx)
 
 **Output**:
 ```json
 {
-  "match_score": 78,
-  "strengths": ["Strong Python experience", "..."],
-  "gaps": ["Limited React experience", "..."],
-  "missing_keywords": ["PostgreSQL", "..."],
-  "recommendations": ["Highlight database work", "..."]
+  "score": 78,
+  "matched_keywords": ["Python", "React", "AWS"],
+  "missing_keywords": ["PostgreSQL", "Kubernetes"],
+  "strengths": [
+    "8 years Python experience (exceeds 5yr requirement)",
+    "Led team of 6 engineers"
+  ],
+  "gaps": [
+    "No PostgreSQL experience mentioned",
+    "Limited Kubernetes background"
+  ]
 }
 ```
 
@@ -286,18 +310,30 @@ src/job_mcp/
 **Purpose**: Generate tailored, truthful resume
 
 **Input**:
-- Job requirements
-- Match analysis
-- Original resume
+- `job_requirements`: Output of `extract_job_requirements` (or just its "extracted" dict)
+- `match_result`: Output of `match_resume_to_job`
+- `resume_text` (optional): Resume content as plain text
+- `resume_file_path` (optional): Path to resume file (.txt, .md, .docx)
 
 **Output**:
 ```json
 {
-  "rewritten_resume": "...",
-  "change_log": [
+  "sections": {
+    "Summary": "Senior Full Stack Engineer with 8+ years...",
+    "Skills": "Languages: Python, JavaScript, TypeScript\nFrameworks: React, Django...",
+    "Experience": "Senior Software Engineer | TechCorp\n2020-Present\n• Developed...",
+    "Projects": "E-commerce Platform\nPython, React, PostgreSQL\n• Built...",
+    "Education": "B.S. Computer Science | MIT | 2015"
+  },
+  "rewritten_resume": "Summary\n\nSenior Full Stack Engineer with 8+ years...\n\nSkills\n...",
+  "changes": [
+    "Moved React and TypeScript to top of Skills section",
     "Emphasized Python projects in Experience section",
-    "Added PostgreSQL keyword to Skills",
-    "..."
+    "Rephrased team collaboration points to highlight leadership"
+  ],
+  "warnings": [
+    "No Kubernetes experience - this is a must-have requirement",
+    "Limited PostgreSQL background - consider adding database coursework"
   ]
 }
 ```
@@ -307,21 +343,24 @@ src/job_mcp/
 **Purpose**: Create ATS-friendly Word document
 
 **Input**:
-- `resume_text`: Rewritten resume content
-- `output_filename` (optional): Custom filename (default: `resume_YYYY-MM-DD.docx`)
+- `rewritten_resume`: Final resume text (typically from `rewrite_resume_for_job_tool()["rewritten_resume"]`)
+- `output_dir` (optional): Directory to save file (default: `"output_resumes"`)
+- `file_name` (optional): Base file name without extension
+- `add_timestamp` (optional): Append timestamp to avoid overwriting (default: `true`)
 
 **Output**:
 ```json
 {
-  "file_path": "output_resumes/resume_2026-01-09.docx",
-  "message": "Resume exported successfully"
+  "saved_path": "output_resumes/resume_2026-01-09_143052.docx",
+  "output_dir": "output_resumes",
+  "add_timestamp": true
 }
 ```
 
 **Features**:
 - Clean, ATS-friendly formatting
-- Automatic timestamp in filename
-- Saved to `output_resumes/` directory
+- Automatic timestamp in filename (optional)
+- Saved to configurable directory
 
 ---
 
