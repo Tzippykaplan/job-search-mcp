@@ -5,19 +5,18 @@ import logging
 from typing import Any, Callable
 
 from job_mcp.adapters.gemini_client import GeminiLLMClient
-from job_mcp.utils.gemini_helpers import as_list
+from job_mcp.utils.gemini_helpers import as_list, parse_llm_json_response
 from job_mcp.utils.read_resume import read_resume_any
 from job_mcp.exceptions import ValidationError, LLMResponseError, FileReadError
 
 logger = logging.getLogger(__name__)
-ReadResume = Callable[[str], str]
 
 
 class MatchResumeService:
     def __init__(
         self,
         llm: GeminiLLMClient | None = None,
-        resume_reader: ReadResume = read_resume_any,
+        resume_reader: Callable[[str], str] = read_resume_any,
     ) -> None:
         self._llm = llm or GeminiLLMClient()
         self._resume_reader = resume_reader
@@ -48,15 +47,14 @@ class MatchResumeService:
         llm_response = await self._llm.generate_text(prompt)
         logger.debug("Received LLM response", extra={"response_length": len(llm_response)})
 
-        try:
-            parsed_match_result = json.loads(llm_response)
-            logger.info("Successfully parsed match result")
-        except json.JSONDecodeError as e:
-            logger.error("Failed to parse LLM response as JSON", extra={
-                "error": str(e),
-                "response_preview": llm_response[:200]
-            }, exc_info=True)
-            raise LLMResponseError(f"Gemini returned invalid JSON for match_resume. Error: {e}") from e
+        parsed_match_result = parse_llm_json_response(
+            llm_response, "resume matching", logger
+        )
+
+        # Check if result is a wrapped array (from robust_json_loads)
+        if "data" in parsed_match_result and len(parsed_match_result) == 1:
+            logger.error("LLM returned array instead of object")
+            raise LLMResponseError("Gemini returned JSON but not an object for match_resume")
 
         if not isinstance(parsed_match_result, dict):
             logger.error("LLM returned non-dict JSON", extra={"type": type(parsed_match_result).__name__})
@@ -70,8 +68,10 @@ class MatchResumeService:
         return result
 
     def _build_matching_prompt(self, job_requirements: dict[str, Any], resume_text: str) -> str:
+        from job_mcp.config import MAX_RESUME_LENGTH
+
         job_requirements_json = json.dumps(job_requirements, ensure_ascii=False)
-        truncated_resume_text = (resume_text or "")[:14000]
+        truncated_resume_text = (resume_text or "")[:MAX_RESUME_LENGTH]
 
         return f"""You are an ATS (Applicant Tracking System) resume matcher. Your task is to objectively match a candidate's resume against job requirements.
 

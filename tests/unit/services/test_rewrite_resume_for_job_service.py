@@ -20,11 +20,6 @@ class FakeLLM:
         return self.response_text
 
 
-def fake_reader(path: str) -> str:
-    assert path == "resume.pdf"
-    return "My Resume\nPython developer\n"
-
-
 @pytest.mark.asyncio
 async def test_rewrite_raises_when_no_resume_text_and_no_file():
     svc = RewriteResumeService(llm=FakeLLM("{}"))  # type: ignore[arg-type]
@@ -34,6 +29,10 @@ async def test_rewrite_raises_when_no_resume_text_and_no_file():
 
 @pytest.mark.asyncio
 async def test_rewrite_reads_from_file_when_resume_file_path_provided():
+    def fake_reader(path: str) -> str:
+        assert path == "resume.pdf"
+        return "My Resume\nPython developer\n"
+    
     llm = FakeLLM(
         json.dumps(
             {
@@ -137,7 +136,7 @@ async def test_rewrite_invalid_json_from_llm_raises_clean_error():
     llm = FakeLLM("NOT JSON")
     svc = RewriteResumeService(llm=llm)  # type: ignore[arg-type]
 
-    with pytest.raises(LLMResponseError, match="Gemini returned invalid JSON. Could not rewrite resume"):
+    with pytest.raises(LLMResponseError, match="Gemini returned invalid JSON for resume rewrite"):
         await svc.rewrite_resume_for_job(job_requirements={}, match_result={}, resume_text="resume", resume_file_path=None)
 
 

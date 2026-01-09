@@ -7,7 +7,7 @@ from mcp.server.fastmcp import FastMCP
 import truststore
 
 from job_mcp.config import SYSTEM_PROMPT
-from job_mcp.utils.validation import require_str, require_dict, require_one_of
+from job_mcp.utils.validation import require_str, require_dict, require_one_of, require_bool
 from job_mcp.exceptions import ValidationError
 from job_mcp.utils.logger import setup_logging
 
@@ -165,10 +165,7 @@ async def tool_export_resume_docx(
     rewritten_resume = require_str("rewritten_resume", rewritten_resume)
     output_dir = require_str("output_dir", output_dir)
     file_name = require_str("file_name", file_name, allow_none=True)
-
-    if not isinstance(add_timestamp, bool):
-        # Guard against clients sending "true"/"false" strings instead of JSON booleans.
-        raise ValidationError("add_timestamp must be a boolean")
+    add_timestamp = require_bool("add_timestamp", add_timestamp)
 
     return await export_resume_docx_tool(rewritten_resume, output_dir, file_name, add_timestamp)
 

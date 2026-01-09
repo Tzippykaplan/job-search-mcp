@@ -29,17 +29,29 @@ def read_docx_file(path: str) -> str:
 
 def read_resume_any(path: str) -> str:
     """
-    Read resume from file, automatically detecting format.
+    Read resume from file.
+
+    Automatically detects format (.txt, .md, .docx) and reads accordingly.
+
+    Args:
+        path: Path to resume file.
+
+    Returns:
+        Resume text content.
+
+    Raises:
+        FileReadError: If file not found or unsupported format.
     """
-    p = Path(path)
+    p = Path(path).resolve()  # Resolve symlinks and relative paths
+
     if not p.exists():
         raise FileReadError(f"Resume file not found: {path}")
 
     ext = p.suffix.lower()
     if ext in [".txt", ".md"]:
-        return read_text_file(path)
+        return read_text_file(str(p))
     if ext == ".docx":
-        return read_docx_file(path)
+        return read_docx_file(str(p))
 
     raise FileReadError(f"Unsupported resume file type: {ext}. Use .txt, .md, or .docx")
 

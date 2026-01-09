@@ -7,7 +7,7 @@ from typing import Any, Awaitable, Callable
 from job_mcp.adapters.job_page_fetcher import fetch_job_page, extract_requirements_section
 
 from job_mcp.config import MAX_JOB_TEXT_LENGTH
-from job_mcp.utils.gemini_helpers import robust_json_loads
+from job_mcp.utils.gemini_helpers import parse_llm_json_response
 from job_mcp.adapters.gemini_client import GeminiLLMClient
 from job_mcp.exceptions import ValidationError, LLMResponseError
 
@@ -64,19 +64,9 @@ class JobRequirementsExtractionService:
         llm_response = await self._llm.generate_text(prompt)
         logger.debug("Received LLM response", extra={"response_length": len(llm_response)})
 
-        try:
-            parsed_requirements = robust_json_loads(llm_response)
-            logger.info("Successfully extracted job requirements", extra={
-                "fields": list(parsed_requirements.keys()) if isinstance(parsed_requirements, dict) else None
-            })
-        except json.JSONDecodeError as e:
-            logger.error("Failed to parse LLM response as JSON", extra={
-                "error": str(e),
-                "response_preview": llm_response[:200]
-            }, exc_info=True)
-            raise LLMResponseError(
-                f"Gemini returned invalid JSON. Could not extract job requirements. Error: {e}"
-            ) from e
+        parsed_requirements = parse_llm_json_response(
+            llm_response, "job extraction", logger
+        )
 
         return {
             "source": "job_url" if job_url else "job_text",

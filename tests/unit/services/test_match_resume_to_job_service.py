@@ -104,7 +104,7 @@ async def test_match_raises_when_llm_returns_invalid_json() -> None:
     llm = FakeGeminiLLMClient("NOT JSON")
     svc = MatchResumeService(llm=llm)  # type: ignore[arg-type]
 
-    with pytest.raises(LLMResponseError, match="Gemini returned invalid JSON for match_resume"):
+    with pytest.raises(LLMResponseError, match="Gemini returned invalid JSON for resume matching"):
         await svc.match_resume_to_job_requirements(job_requirements={"x": 1}, resume_text="ok")
 
     assert llm.calls == 1
