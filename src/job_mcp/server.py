@@ -29,34 +29,35 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool(
     name="extract_job_requirements",
-    description="Extract structured job requirements from a job URL or pasted text. Input: job_url|job_text. Returns: {source, job_url, extracted} or {error, message} if scraping is blocked.",
-)
-async def tool_extract_job_requirements(job_url: str | None = None, job_text: str | None = None):
-    """Extract structured requirements from a job post (URL or pasted text).
-
+    description="""Extract structured job requirements from a job posting URL or raw text.
+    
     Inputs (provide at least one):
-    - job_url: URL to a job posting page
-    - job_text: raw job description text
-
+    - job_url: URL to a job posting page (will be scraped)
+    - job_text: Raw job description text (use if URL blocked)
+    
     Returns (success):
-    - {
-        "source": "job_url"|"job_text",
-        "job_url": str|None,
+    {
+        "source": "job_url" or "job_text",
+        "job_url": str or null,
         "extracted": {
-            "title": str|None,
-            "company": str|None,
-            "location": str|None,
+            "title": str or null,
+            "company": str or null,
+            "location": str or null,
             "years_experience": list[str],
             "must_have_tech": list[str],
             "nice_to_have_tech": list[str],
             "soft_skills": list[str],
             "notes": list[str]
         }
-      }
-
-    Returns (scrape blocked / empty page):
-    - {"source": ..., "job_url": ..., "error": "blocked_by_site", "message": str}
-    """
+    }
+    
+    Returns (scrape blocked):
+    {"source": "job_url", "job_url": str, "error": "blocked_by_site", "message": str}
+    
+    Use this as the first step to analyze a job posting.""",
+)
+async def tool_extract_job_requirements(job_url: str | None = None, job_text: str | None = None):
+    """Extract structured job requirements from URL or text."""
     logger.info("Tool called: extract_job_requirements", extra={"has_url": bool(job_url), "has_text": bool(job_text)})
     require_one_of(job_url=job_url, job_text=job_text)
     job_url = require_str("job_url", job_url, allow_none=True)
@@ -65,28 +66,38 @@ async def tool_extract_job_requirements(job_url: str | None = None, job_text: st
 
 @mcp.tool(
     name="match_resume_to_job",
-    description="Evaluate resume fit vs job requirements. Inputs: job_requirements + (resume_text|resume_file_path). Returns: {score, matched_keywords, missing_keywords, strengths, gaps}."
+    description="""Evaluate how well a resume matches job requirements with detailed scoring and gap analysis.
+    
+    Inputs:
+    - job_requirements: Output from extract_job_requirements (full object or just 'extracted' dict)
+    - resume_text (optional): Resume content as plain text
+    - resume_file_path (optional): Path to resume file (.txt, .md, .docx)
+    (Provide either resume_text OR resume_file_path)
+    
+    Returns:
+    {
+        "score": int (0-100),
+        "matched_keywords": list[str],    # Skills found in resume
+        "missing_keywords": list[str],    # Skills NOT found in resume
+        "strengths": list[str],           # Specific positive points
+        "gaps": list[str]                 # Specific weaknesses
+    }
+    
+    Scoring:
+    - 90-100: Exceptional fit
+    - 75-89: Strong fit
+    - 60-74: Good fit
+    - 40-59: Moderate fit with gaps
+    - 0-39: Weak/poor fit
+    
+    Use this after extract_job_requirements to assess candidate fit.""",
 )
 async def tool_match_resume_to_job(
     job_requirements: dict,
     resume_text: str | None = None,
     resume_file_path: str | None = None,
 ):
-    """Compare a resume to job requirements.
-
-    Inputs:
-    - job_requirements: output of `extract_job_requirements` (or just its "extracted" dict)
-    - resume_text|resume_file_path: resume source (provide at least one)
-
-    Returns:
-    - {
-        "score": int,                 # 0..100
-        "matched_keywords": list[str],
-        "missing_keywords": list[str],
-        "strengths": list[str],
-        "gaps": list[str]
-      }
-    """
+    """Score resume fit against job requirements."""
     logger.info("Tool called: match_resume_to_job", extra={"has_text": bool(resume_text), "has_file": bool(resume_file_path)})
     job_requirements = require_dict("job_requirements", job_requirements)
     
@@ -101,7 +112,39 @@ async def tool_match_resume_to_job(
 
 @mcp.tool(
     name="rewrite_resume_for_job",
-    description="Rewrite a resume for a specific job while staying truthful. Inputs: job_requirements + match_result + resume. Returns: {sections, rewritten_resume, changes, warnings}."
+    description="""Rewrite and optimize a resume for a specific job while maintaining complete truthfulness.
+    
+    IMPORTANT: Never invents experience, skills, or qualifications. Only reorganizes and rephrases existing content.
+    
+    Inputs:
+    - job_requirements: Output from extract_job_requirements (full object or just 'extracted' dict)
+    - match_result: Output from match_resume_to_job
+    - resume_text (optional): Resume content as plain text
+    - resume_file_path (optional): Path to resume file (.txt, .md, .docx)
+    (Provide either resume_text OR resume_file_path)
+    
+    Returns:
+    {
+        "sections": {
+            "Summary": str,
+            "Skills": str,
+            "Experience": str,
+            "Projects": str,
+            "Education": str
+        },
+        "rewritten_resume": str,          # Complete formatted resume
+        "changes": list[str],             # List of improvements made
+        "warnings": list[str]             # Critical gaps that couldn't be addressed
+    }
+    
+    Optimizations applied:
+    - Reorder sections/bullets to emphasize relevant experience
+    - Use job-specific keywords from requirements
+    - Strengthen weak phrasing with action verbs
+    - Quantify achievements where numbers exist
+    - ATS-optimized formatting
+    
+    Use this after match_resume_to_job to generate the final tailored resume.""",
 )
 async def tool_rewrite_resume_for_job(
     job_requirements: dict,
@@ -109,21 +152,7 @@ async def tool_rewrite_resume_for_job(
     resume_text: str | None = None,
     resume_file_path: str | None = None,
 ):
-    """Rewrite a resume to better align with a target job (without inventing facts).
-
-    Inputs:
-    - job_requirements: output of `extract_job_requirements` (or just its "extracted" dict)
-    - match_result: output of `match_resume_to_job`
-    - resume_text|resume_file_path: resume source (provide at least one)
-
-    Returns:
-    - {
-        "sections": {"Summary": str, "Skills": str, "Experience": str, "Projects": str, "Education": str},
-        "rewritten_resume": str,
-        "changes": list[str],
-        "warnings": list[str]
-      }
-    """
+    """Optimize resume for specific job while staying truthful."""
     logger.info("Tool called: rewrite_resume_for_job", extra={"has_text": bool(resume_text), "has_file": bool(resume_file_path)})
     job_requirements = require_dict("job_requirements", job_requirements)
     match_result = require_dict("match_result", match_result)
@@ -142,7 +171,28 @@ async def tool_rewrite_resume_for_job(
 
 @mcp.tool(
     name="export_resume_docx",
-    description="Export resume text to a DOCX file. Inputs: rewritten_resume + output options. Returns: {saved_path, output_dir, add_timestamp}."
+    description="""Export resume text to a professional DOCX file compatible with ATS systems.
+    
+    Inputs:
+    - rewritten_resume: Final resume text (typically from rewrite_resume_for_job)
+    - output_dir (optional): Directory to save file (default: 'output_resumes')
+    - file_name (optional): Base filename without extension (default: 'rewritten_resume')
+    - add_timestamp (optional): Append timestamp to filename to avoid overwriting (default: true)
+    
+    Returns:
+    {
+        "saved_path": str,        # Absolute path to generated .docx file
+        "output_dir": str,        # Directory where file was saved
+        "add_timestamp": bool     # Whether timestamp was added
+    }
+    
+    Output format:
+    - Clean, ATS-friendly formatting
+    - Standard professional layout
+    - Compatible with all major ATS systems
+    - Ready to submit
+    
+    Use this as the final step to save the optimized resume.""",
 )
 async def tool_export_resume_docx(
     rewritten_resume: str,
@@ -150,17 +200,7 @@ async def tool_export_resume_docx(
     file_name: str | None = None,
     add_timestamp: bool = True,
 ):
-    """Export resume content to a local .docx file.
-
-    Inputs:
-    - rewritten_resume: final resume text to write into the DOCX
-    - output_dir: directory to save into (default: output_resumes)
-    - file_name: base name without extension (optional)
-    - add_timestamp: avoid overwriting by appending a timestamp
-
-    Returns:
-    - {"saved_path": str, "output_dir": str, "add_timestamp": bool}
-    """
+    """Export resume to ATS-compatible DOCX file."""
     logger.info("Tool called: export_resume_docx", extra={"output_dir": output_dir, "add_timestamp": add_timestamp})
     rewritten_resume = require_str("rewritten_resume", rewritten_resume)
     output_dir = require_str("output_dir", output_dir)
