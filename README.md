@@ -400,9 +400,6 @@ The project uses the following tools (install with `pip install -e ".[dev]"`):
 pytest                    # Test runner
 pytest-cov                # Coverage reporting
 ```
-
-**Note**: Additional linting tools (ruff, black, pyright) are not currently installed but recommended for development.
-
 ---
 
 ##  Cost Estimation
