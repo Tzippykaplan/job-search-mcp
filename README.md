@@ -7,7 +7,7 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 [![Tests: 92 Passing](https://img.shields.io/badge/tests-92%20passing-brightgreen.svg)](#development)
-[![Code Quality: A](https://img.shields.io/badge/code%20quality-A-brightgreen.svg)](#code-quality)
+[![Test Coverage: 83%](https://img.shields.io/badge/coverage-83%25-brightgreen.svg)](#development)
 
 [Features](#features) • [Quick Start](#quick-start) • [Architecture](#architecture) • [Usage](#usage) • [Development](#development)
 
@@ -384,15 +384,24 @@ Key settings in `src/job_mcp/config.py`:
 pytest                    # Run all tests
 pytest -v                 # Verbose output
 pytest tests/unit/        # Specific suite
+pytest --cov=src/job_mcp  # With coverage report
 ```
 
-### Code Quality
+**Test Statistics:**
+- 92 unit tests
+- 83% code coverage
+- All tests passing
+
+### Code Quality Tools
+
+The project uses the following tools (install with `pip install -e ".[dev]"`):
 
 ```bash
-black src/                # Format code
-ruff check src/ --fix     # Lint and auto-fix
-pyright src/              # Type checking
+pytest                    # Test runner
+pytest-cov                # Coverage reporting
 ```
+
+**Note**: Additional linting tools (ruff, black, pyright) are not currently installed but recommended for development.
 
 ---
 
