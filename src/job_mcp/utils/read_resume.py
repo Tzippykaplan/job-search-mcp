@@ -5,17 +5,13 @@ from job_mcp.exceptions import FileReadError
 
 
 def read_text_file(path: str) -> str:
-    """
-    Read plain text resume file.
-    """
+    """Read plain text resume file."""
     p = Path(path)
     return p.read_text(encoding="utf-8", errors="ignore")
 
 
 def read_docx_file(path: str) -> str:
-    """
-    Read DOCX resume file.
-    """
+    """Read DOCX resume file."""
     from docx import Document
     
     doc = Document(path)

@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 import logging
@@ -9,12 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class ExportResumeDocxService:
-    """
-    Service for exporting resumes to Microsoft Word DOCX format.
-    
-    Handles the conversion of plain text resumes into professionally
-    formatted DOCX files suitable for ATS systems and job applications.
-    """
+    """Service for exporting resumes to DOCX format."""
 
     async def export(
         self,

@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 import asyncio
@@ -40,7 +41,11 @@ def validate_url(url: str) -> None:
 
 
 def extract_title_from_html(html: str) -> str | None:
-    """Extract job title from HTML, preferring Open Graph meta tag over title tag."""
+    """Extract job title from HTML metadata or title tag.
+    
+    Returns:
+        Job title string or None if not found.
+    """
     soup = BeautifulSoup(html, "html.parser")
 
     og_meta_tag = soup.find("meta", property="og:title")
@@ -54,7 +59,7 @@ def extract_title_from_html(html: str) -> str | None:
 
 
 def parse_html_to_clean_text(html: str) -> str:
-    """Parse HTML and extract clean text content, removing scripts, styles, and navigation elements."""
+    """Parse HTML and extract clean text content."""
     soup = BeautifulSoup(html, "html.parser")
     for tag in soup(["script", "style", "noscript", "header", "footer", "nav"]):
         tag.decompose()
@@ -64,17 +69,19 @@ def parse_html_to_clean_text(html: str) -> str:
 
 
 def extract_requirements_section(text: str) -> str:
-    """
-    Extract the requirements section from job posting text.
+    """Extract the requirements section from job posting text.
     
-    Searches for requirements keywords and returns a focused slice of text
-    around the match, optionally including an intro section if the match
-    is far from the beginning.
+    Uses pattern matching to locate requirements keywords, then extracts
+    surrounding context. If requirements appear late in the text, includes
+    the intro section to preserve job title and company info.
+    
+    Returns:
+        Extracted requirements section, or full text if no pattern found.
     """
-    lower = text.lower()
+    text_lower = text.lower()
 
     for pattern in REQUIREMENTS_PATTERNS:
-        match = re.search(pattern, lower, flags=re.IGNORECASE)
+        match = re.search(pattern, text_lower, flags=re.IGNORECASE)
         if match:
             start = max(0, match.start() - REQUIREMENTS_CONTEXT_BEFORE)
             end = min(len(text), match.start() + REQUIREMENTS_CONTEXT_AFTER)

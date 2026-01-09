@@ -1,5 +1,3 @@
-"""Shared utilities for Gemini API interactions and JSON parsing."""
-
 import json
 import logging
 from typing import Any

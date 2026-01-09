@@ -14,7 +14,7 @@ from job_mcp.exceptions import ValidationError, LLMResponseError, FileReadError
 logger = logging.getLogger(__name__)
 
 
-class RewriteResumeService:
+class RewriteResumeService:    
     def __init__(
         self,
         llm: GeminiLLMClient | None = None,
@@ -229,6 +229,15 @@ Remember: Optimize for ATS and recruiter appeal, but NEVER compromise truthfulne
 
     @staticmethod
     def _normalize_rewrite_result(parsed_rewrite_result: dict[str, Any]) -> dict[str, Any]:
+        """Normalize LLM response to ensure consistent structure.
+        
+        Handles edge cases:
+        - Missing or malformed sections dict
+        - Non-string section values
+        - Missing rewritten_resume field (reconstructs from sections)
+        
+        This defensive parsing prevents downstream errors from LLM inconsistencies.
+        """
         sections = parsed_rewrite_result.get("sections") if isinstance(parsed_rewrite_result, dict) else None
         if not isinstance(sections, dict):
             sections = {}

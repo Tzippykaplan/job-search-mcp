@@ -9,10 +9,7 @@ from job_mcp.exceptions import ValidationError
 
 
 def _safe_filename(name: str) -> str:
-    """
-    Make a safe filename for Windows/Linux.
-    Keeps letters/numbers/space/_/- and removes the rest.
-    """
+    """Make a safe filename for Windows/Linux/macOS ."""
     name = (name or "").strip() or "resume"
     name = re.sub(r'[<>:"/\\|?*\n\r\t]+', " ", name)
     name = re.sub(r"\s+", " ", name).strip()

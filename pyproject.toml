@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "job-search-mcp"
 version = "0.1.0"
-description = "MCP server for job-resume matching and rewriting using Google Gemini"
+description = "MCP server for AI-powered job-resume matching and tailoring using Google Gemini"
 readme = "README.md"
 authors = [{name = "Tzippy Kaplan", email = "tzippykaplan123@gmail.com"}]
 requires-python = ">=3.12"
