@@ -395,27 +395,26 @@ Using **Gemini 2.5 Flash** (as of January 2026):
 | `ruff` | Fast Python linter |
 | `pyright` | Type checking |
 
+---
 
 ##  Troubleshooting
 
-**Missing GEMINI_API_KEY?** 
-- Add to `.env` file or Claude Desktop config `env` section
+### Missing GEMINI_API_KEY
 
-**Server not appearing in Claude Desktop?**
-- Use forward slashes (`/`) in paths
-- Use absolute paths, not relative
-- Restart Claude Desktop
+**Cause**: API key not configured
 
----
+**Solutions**:
+- Add to `.env` file in project root
+- Or add to Claude Desktop config `env` section
 
-#### Server Not Appearing in Claude Desktop
+### Server Not Appearing in Claude Desktop
 
 **Cause**: Configuration issues or incorrect paths
 
 **Solutions**:
 1. Verify paths use forward slashes (`/`) even on Windows
-2.  Check paths are absolute, not relative
-3.  Restart Claude Desktop after config changes
+2. Check paths are absolute, not relative
+3. Restart Claude Desktop after config changes
 4. Check Claude Desktop logs for error messages
 
 ```bash
