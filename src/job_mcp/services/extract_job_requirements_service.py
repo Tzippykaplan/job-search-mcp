@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import json
 import logging
+from pathlib import Path
 from typing import Any, Awaitable, Callable
 
 from job_mcp.adapters.job_page_fetcher import fetch_job_page, extract_requirements_section
@@ -13,6 +13,10 @@ from job_mcp.exceptions import ValidationError, LLMResponseError
 
 logger = logging.getLogger(__name__)
 JobPageFetcher = Callable[[str], Awaitable[tuple[str | None, str]]]
+
+# Load prompt template once at module level
+PROMPT_FILE = Path(__file__).parent.parent / "prompts" / "extract_job_requirements_prompt.txt"
+EXTRACT_PROMPT_TEMPLATE = PROMPT_FILE.read_text(encoding="utf-8")
 
 
 class JobRequirementsExtractionService:
@@ -75,53 +79,13 @@ class JobRequirementsExtractionService:
         }
 
     def _build_extraction_prompt(self, *, job_text: str, title_hint: str | None) -> str:
-        return f"""You are a job requirements extraction expert. Your task is to parse a job posting and extract structured information.
-
-OUTPUT FORMAT:
-- Return ONLY valid JSON
-- No markdown formatting, no code fences (no ```), no explanatory text
-- Raw JSON object only
-
-TITLE HINT:
-{f'Use "{title_hint}" as the title unless the job text explicitly contradicts it' if title_hint else 'Extract title from job text if available'}
-
-EXTRACTION RULES:
-1. Extract ONLY information explicitly stated in the job posting
-2. Do NOT infer, assume, or add information not present in the text
-3. Distinguish between required vs. preferred qualifications
-4. Separate technical skills from soft skills
-5. Keep all entries concise and deduplicated
-6. Use empty arrays [] when no information is found for a category
-
-OUTPUT SCHEMA:
-{{
-  "title": string | null,
-  "company": string | null,
-  "location": string | null,
-  "years_experience": string[],
-  "must_have_tech": string[],
-  "nice_to_have_tech": string[],
-  "soft_skills": string[],
-  "notes": string[]
-}}
-
-FIELD DEFINITIONS:
-- title: Job title (e.g., "Senior Frontend Engineer")
-- company: Company name if mentioned
-- location: Work location, remote status, or "Remote"
-- years_experience: Required experience levels (e.g., ["5+ years JavaScript", "3+ years React"])
-- must_have_tech: REQUIRED technical skills - languages, frameworks, tools, databases, cloud platforms, libraries. Look for words like: "required", "must have", "essential", "mandatory"
-- nice_to_have_tech: PREFERRED technical skills. Look for words like: "nice to have", "preferred", "bonus", "plus", "advantage", "beneficial"
-- soft_skills: Non-technical abilities (e.g., "teamwork", "communication", "problem-solving", "leadership")
-- notes: Important constraints or details (e.g., "hybrid 3 days/week", "travel 20%", "on-call rotation", "salary $120k-150k", "early-stage startup")
-
-EXAMPLES OF CLASSIFICATION:
-- "Must have experience with React" → must_have_tech: ["React"]
-- "Knowledge of Vue.js is a plus" → nice_to_have_tech: ["Vue.js"]
-- "Strong communication skills" → soft_skills: ["communication"]
-- "Remote with quarterly onsite meetings" → notes: ["remote with quarterly onsite meetings"]
-
-JOB POSTING TEXT:
-\"\"\"{job_text}\"\"\"
-
-Remember: Return ONLY the JSON object, nothing else.""".strip()
+        title_hint_text = (
+            f'Use "{title_hint}" as the title unless the job text explicitly contradicts it'
+            if title_hint
+            else 'Extract title from job text if available'
+        )
+        
+        return EXTRACT_PROMPT_TEMPLATE.format(
+            title_hint_text=title_hint_text,
+            job_text=job_text
+        )
