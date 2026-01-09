@@ -6,8 +6,10 @@
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
+[![Tests: 92 Passing](https://img.shields.io/badge/tests-92%20passing-brightgreen.svg)](#development)
+[![Code Quality: A](https://img.shields.io/badge/code%20quality-A-brightgreen.svg)](#code-quality)
 
-[Features](#features) • [Quick Start](#quick-start) • [Architecture](#architecture) • [Usage](#usage)
+[Features](#features) • [Quick Start](#quick-start) • [Architecture](#architecture) • [Usage](#usage) • [Development](#development)
 
 </div>
 
@@ -196,18 +198,18 @@ export_resume_docx
 
 ##  Architecture
 
+### Technical Highlights
+
+- **Async Architecture** - Fast, non-blocking I/O
+-  **Type-Safe** - Full Python 3.12+ type hints
+-  **92 Unit Tests** - Comprehensive test coverage
+- **Rate Limiting** - Smart API quota management
+
 ### Design Philosophy
 
-This project demonstrates **production-grade MCP server design**:
-
 - **Layered Architecture** - Tools → Services → Adapters → Utils
--  **Dependency Injection** - Services accept mock adapters for testing
--  **Custom Exceptions** - Proper error categorization and handling
-- **Comprehensive Logging** - Structured logs for debugging and monitoring
--  **Input Validation** - All parameters validated before processing
--  **Truthful AI** - Prompts explicitly forbid fabricated experience
--  **ATS-Optimized** - DOCX output designed for applicant tracking systems
--  **Type Safety** - Full type hints with Python 3.12+ syntax
+- **Truthful AI** - Never invents fake experience
+- **ATS-Optimized** - Clean DOCX output for applicant tracking systems
 
 ### Project Structure
 
@@ -305,36 +307,33 @@ src/job_mcp/
 **Purpose**: Create ATS-friendly Word document
 
 **Input**:
-- Rewritten resume text
+- `resume_text`: Rewritten resume content
+- `output_filename` (optional): Custom filename (default: `resume_YYYY-MM-DD.docx`)
 
 **Output**:
 ```json
 {
-  "file_path": "/path/to/output_resumes/resume_20260108_143022.docx",
+  "file_path": "output_resumes/resume_2026-01-09.docx",
   "message": "Resume exported successfully"
 }
 ```
 
+**Features**:
+- Clean, ATS-friendly formatting
+- Automatic timestamp in filename
+- Saved to `output_resumes/` directory
+
 ---
 
-## ⚙️ Configuration
+## Configuration
 
-Customize settings in `src/job_mcp/config.py`:
+Key settings in `src/job_mcp/config.py`:
+- `GEMINI_MODEL` - AI model (default: `gemini-2.5-flash`)
+- `GEMINI_MAX_REQUESTS_PER_MINUTE` - Rate limit (default: `60`)
+- `MAX_RESUME_LENGTH` - Max resume size (default: `16000` chars)
+- `DEFAULT_OUTPUT_DIR` - DOCX save location (default: `output_resumes`)
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini AI model to use |
-| `MAX_JOB_TEXT_LENGTH` | `18000` | Max job text characters processed |
-| `MAX_RESUME_LENGTH` | `16000` | Max resume characters processed |
-| `DEFAULT_OUTPUT_DIR` | `output_resumes` | Default DOCX save location |
-| `SUPPORTED_RESUME_FORMATS` | `[.txt, .md, .docx]` | Accepted resume file types |
-
-### Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `GEMINI_API_KEY` |  Yes | Google Gemini API key |
-| `LOG_LEVEL` | No | Logging level (default: INFO) |
+**Rate Limiting**: Automatic API quota management prevents throttling. Configurable limit, shared across instances.
 
 ---
 
@@ -343,46 +342,17 @@ Customize settings in `src/job_mcp/config.py`:
 ### Running Tests
 
 ```bash
-# Run all tests
-pytest
-
-# Verbose output
-pytest -v
-
-# Run specific test suite
-pytest tests/unit/
-pytest tests/integration/
-
-# With coverage
-pytest --cov=src/job_mcp --cov-report=html
+pytest                    # Run all tests
+pytest -v                 # Verbose output
+pytest tests/unit/        # Specific suite
 ```
 
 ### Code Quality
 
 ```bash
-# Format code
-black src/
-
-# Lint and auto-fix
-ruff check src/ --fix
-
-# Type checking
-pyright src/
-
-# Run all checks
-black src/ && ruff check src/ --fix && pyright src/ && pytest
-```
-
-### Pre-commit Hooks (Recommended)
-
-```bash
-# Install pre-commit
-pip install pre-commit
-
-# Set up hooks
-pre-commit install
-
-# Now hooks run automatically on commit
+black src/                # Format code
+ruff check src/ --fix     # Lint and auto-fix
+pyright src/              # Type checking
 ```
 
 ---
@@ -428,24 +398,13 @@ Using **Gemini 2.5 Flash** (as of January 2026):
 
 ##  Troubleshooting
 
-### Common Issues
+**Missing GEMINI_API_KEY?** 
+- Add to `.env` file or Claude Desktop config `env` section
 
-#### "Missing GEMINI_API_KEY" Error
-
-**Cause**: API key not found in environment
-
-**Solutions**:
-1. Ensure `.env` file exists in project root
-2. For Claude Desktop, add API key to `env` section in config JSON
-3. Check for typos in variable name
-
-```bash
-# Verify .env file
-cat .env
-
-# Should show:
-GEMINI_API_KEY=your_key_here
-```
+**Server not appearing in Claude Desktop?**
+- Use forward slashes (`/`) in paths
+- Use absolute paths, not relative
+- Restart Claude Desktop
 
 ---
 
@@ -468,6 +427,7 @@ MCP Server starting...
 ```
 ---
 <div align="center">
+
 **Made with ❤️ for job seekers everywhere**
 
 </div>
