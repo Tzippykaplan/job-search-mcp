@@ -224,9 +224,12 @@ src/job_mcp/
 │   ├── read_resume.py                # Resume file readers (.txt, .md, .docx)
 │   ├── export_resume_docx.py         # DOCX generation
 │   ├── validation.py                 # Input validation
-│   └── logger.py                     # Logging configuration
-└── prompts/                           # AI prompt templates
-    └── system_prompt.txt
+│   └── logger.py                     # Logging 
+└── prompts/                           # LLM prompt templates (external files)
+    ├── system_prompt.txt              # MCP agent system instructions
+    ├── extract_job_requirements_prompt.txt   # Job parsing prompt
+    ├── match_resume_prompt.txt               # Resume matching prompt
+    └── rewrite_resume_prompt.txt             # Resume rewriting prompt
 ```
 
 ### Tool Details
