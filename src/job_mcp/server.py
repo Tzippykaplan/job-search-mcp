@@ -31,6 +31,12 @@ logger = logging.getLogger(__name__)
     name="extract_job_requirements",
     description="""Extract structured job requirements from a job posting URL or raw text.
     
+    WHEN TO USE THIS:
+    - User provides a job posting URL or job description text
+    - Starting a new job application workflow
+    - Need to analyze what skills/experience a job requires
+    - First step before matching or rewriting a resume
+    
     Inputs (provide at least one):
     - job_url: URL to a job posting page (will be scraped)
     - job_text: Raw job description text (use if URL blocked)
@@ -51,10 +57,8 @@ logger = logging.getLogger(__name__)
         }
     }
     
-    Returns (scrape blocked):
-    {"source": "job_url", "job_url": str, "error": "blocked_by_site", "message": str}
-    
-    Use this as the first step to analyze a job posting.""",
+    Returns (scraper blocked):
+    {"source": "job_url", "job_url": str, "error": "blocked_by_site", "message": str}""",
 )
 async def tool_extract_job_requirements(job_url: str | None = None, job_text: str | None = None):
     """Extract structured job requirements from URL or text."""
@@ -67,6 +71,13 @@ async def tool_extract_job_requirements(job_url: str | None = None, job_text: st
 @mcp.tool(
     name="match_resume_to_job",
     description="""Evaluate how well a resume matches job requirements with detailed scoring and gap analysis.
+    
+    WHEN TO USE THIS:
+    - After extract_job_requirements has parsed the job posting
+    - User wants to know if their resume is a good fit for the job
+    - Need to identify strengths and gaps before rewriting
+    - Checking ATS compatibility score
+    - Deciding whether to apply to a specific position
     
     Inputs:
     - job_requirements: Output from extract_job_requirements (full object or just 'extracted' dict)
@@ -88,9 +99,7 @@ async def tool_extract_job_requirements(job_url: str | None = None, job_text: st
     - 75-89: Strong fit
     - 60-74: Good fit
     - 40-59: Moderate fit with gaps
-    - 0-39: Weak/poor fit
-    
-    Use this after extract_job_requirements to assess candidate fit.""",
+    - 0-39: Weak/poor fit""",
 )
 async def tool_match_resume_to_job(
     job_requirements: dict,
@@ -113,6 +122,13 @@ async def tool_match_resume_to_job(
 @mcp.tool(
     name="rewrite_resume_for_job",
     description="""Rewrite and optimize a resume for a specific job while maintaining complete truthfulness.
+    
+    WHEN TO USE THIS:
+    - After match_resume_to_job shows the fit score and gaps
+    - User wants to optimize their resume for a specific job posting
+    - Need to make resume ATS-friendly with relevant keywords
+    - Want to emphasize relevant experience over less relevant content
+    - Preparing final resume version before applying
     
     IMPORTANT: Never invents experience, skills, or qualifications. Only reorganizes and rephrases existing content.
     
@@ -142,9 +158,7 @@ async def tool_match_resume_to_job(
     - Use job-specific keywords from requirements
     - Strengthen weak phrasing with action verbs
     - Quantify achievements where numbers exist
-    - ATS-optimized formatting
-    
-    Use this after match_resume_to_job to generate the final tailored resume.""",
+    - ATS-optimized formatting""",
 )
 async def tool_rewrite_resume_for_job(
     job_requirements: dict,
@@ -173,6 +187,13 @@ async def tool_rewrite_resume_for_job(
     name="export_resume_docx",
     description="""Export resume text to a professional DOCX file compatible with ATS systems.
     
+    WHEN TO USE THIS:
+    - After rewrite_resume_for_job has generated the optimized resume
+    - User is ready to save the final version as a file
+    - Need to submit resume to job application portals
+    - Want to download the resume in DOCX format
+    - Final step before applying to the job
+    
     Inputs:
     - rewritten_resume: Final resume text (typically from rewrite_resume_for_job)
     - output_dir (optional): Directory to save file (default: 'output_resumes')
@@ -190,9 +211,7 @@ async def tool_rewrite_resume_for_job(
     - Clean, ATS-friendly formatting
     - Standard professional layout
     - Compatible with all major ATS systems
-    - Ready to submit
-    
-    Use this as the final step to save the optimized resume.""",
+    - Ready to submit""",
 )
 async def tool_export_resume_docx(
     rewritten_resume: str,
