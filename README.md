@@ -20,16 +20,6 @@ You spend hours customizing your resume for each job application. You're never s
 
 A **Model Context Protocol (MCP)** server that transforms your resume tailoring workflow. Simply provide a job URL and your resume - an AI agent extracts requirements, analyzes your fit, and generates an ATS-optimized resume **in seconds**. All while maintaining complete truthfulness about your experience.
 
-### Why This Matters
-
--  **10x faster** than manual resume customization
--  **Higher ATS scores** with keyword optimization
--  **Autonomous AI agents** handle the entire workflow
--  **Truthful by design** - never invents fake experience
--  **Professional output** - ready-to-submit DOCX files
-
----
-
 ##  Features
 
 ###  Intelligent Job Parsing

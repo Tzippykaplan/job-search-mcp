@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+from collections import deque
 import logging
 import os
+import threading
 import time
 
 from google import genai
@@ -31,11 +33,18 @@ class GeminiLLMClient:
     - Thread-safe async wrapping of sync API calls
     - Rate limiting to prevent quota exhaustion (shared across all instances)
     - Request timeouts to prevent hanging
+    
+    Thread Safety:
+    - Uses threading.Lock for synchronous rate limit operations
+    - Uses deque for thread-safe timestamp storage
+    - Safe for concurrent use across multiple async tasks
     """
 
     # Class-level rate limiting (shared across all instances)
-    _class_rate_limit_lock: asyncio.Lock | None = None
-    _class_request_timestamps: list[float] = []
+    # Thread-safe initialization using threading.Lock
+    _init_lock = threading.Lock()
+    _class_rate_limit_lock: threading.Lock | None = None
+    _class_request_timestamps: deque[float] = deque()
     _class_max_requests_per_minute: int = GEMINI_MAX_REQUESTS_PER_MINUTE
 
     def __init__(
@@ -61,53 +70,66 @@ class GeminiLLMClient:
         self._client = genai.Client(api_key=self._api_key)
         self._default_timeout = timeout
 
-        # Initialize class-level lock on first instance creation
-        if GeminiLLMClient._class_rate_limit_lock is None:
-            GeminiLLMClient._class_rate_limit_lock = asyncio.Lock()
+        # Thread-safe initialization of class-level lock
+        with GeminiLLMClient._init_lock:
+            if GeminiLLMClient._class_rate_limit_lock is None:
+                GeminiLLMClient._class_rate_limit_lock = threading.Lock()
 
-    async def _enforce_rate_limit(self) -> None:
+    def _sync_enforce_rate_limit(self) -> float | None:
         """
-        Enforce rate limit using sliding window algorithm.
-
-        Tracks request timestamps and waits if rate limit would be exceeded.
-        Rate limiting is shared across all instances of this class.
+        Synchronous rate limit enforcement using sliding window algorithm.
+        
+        This runs in a thread-safe manner using threading.Lock.
+        
+        Returns:
+            Wait time in seconds if rate limit exceeded, None otherwise.
         """
-        # Use class-level lock (initialized in __init__)
         assert self._class_rate_limit_lock is not None
-        async with self._class_rate_limit_lock:
+        
+        with self._class_rate_limit_lock:
             now = time.time()
             window_start = now - 60.0  # 60 second window
-
-            # Remove timestamps older than 60 seconds
-            GeminiLLMClient._class_request_timestamps = [
-                ts for ts in GeminiLLMClient._class_request_timestamps if ts > window_start
-            ]
-
-            # If we've hit the limit, wait until oldest request expires
+            
+            # Remove timestamps older than 60 seconds (thread-safe with deque)
+            while (GeminiLLMClient._class_request_timestamps and 
+                   GeminiLLMClient._class_request_timestamps[0] <= window_start):
+                GeminiLLMClient._class_request_timestamps.popleft()
+            
+            # If we've hit the limit, calculate wait time
             if len(GeminiLLMClient._class_request_timestamps) >= GeminiLLMClient._class_max_requests_per_minute:
                 oldest_timestamp = GeminiLLMClient._class_request_timestamps[0]
                 wait_time = 60.0 - (now - oldest_timestamp)
-
+                
                 if wait_time > 0:
                     logger.warning(
-                        f"Rate limit reached, waiting {wait_time:.2f}s",
+                        f"Rate limit reached, will wait {wait_time:.2f}s",
                         extra={"requests_in_window": len(GeminiLLMClient._class_request_timestamps)}
                     )
-                    await asyncio.sleep(wait_time)
-
-                    # Recalculate after waiting
-                    now = time.time()
-                    window_start = now - 60.0
-                    GeminiLLMClient._class_request_timestamps = [
-                        ts for ts in GeminiLLMClient._class_request_timestamps if ts > window_start
-                    ]
-
-            # Record this request
+                    return wait_time
+            
+            # Record this request (thread-safe append)
             GeminiLLMClient._class_request_timestamps.append(now)
             logger.debug("Rate limit check passed", extra={
                 "requests_in_window": len(GeminiLLMClient._class_request_timestamps),
                 "limit": GeminiLLMClient._class_max_requests_per_minute
             })
+            return None
+
+    async def _enforce_rate_limit(self) -> None:
+        """
+        Async wrapper for rate limit enforcement.
+        
+        Runs synchronous rate limiting in a thread pool to avoid blocking
+        the event loop while maintaining thread safety.
+        """
+        # Run synchronous rate limiting in thread pool
+        wait_time = await asyncio.to_thread(self._sync_enforce_rate_limit)
+        
+        # If we need to wait, do it asynchronously
+        if wait_time and wait_time > 0:
+            await asyncio.sleep(wait_time)
+            # After waiting, check again and record the request
+            await asyncio.to_thread(self._sync_enforce_rate_limit)
 
     async def generate_text(
         self,
